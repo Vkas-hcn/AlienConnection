@@ -1,14 +1,15 @@
-package com.beetle.chili.triggers.connection
+package com.beetle.chili.triggers.connection.uasndje
 
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.beetle.chili.triggers.connection.databinding.ActivityMainBinding
+import com.beetle.chili.triggers.connection.R
 import com.beetle.chili.triggers.connection.databinding.VvSsBinding
 
 class StartActivity : AppCompatActivity() {
@@ -26,11 +27,13 @@ class StartActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        // 设置进度条的最大值
-        binding.alienProgressBar.max = progressBarMax
-        // 启动进度条更新
-        startProgress()
+        onBackPressedDispatcher.addCallback(object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
 
+            }
+        })
+        binding.alienProgressBar.max = progressBarMax
+        startProgress()
     }
 
     private fun startProgress() {

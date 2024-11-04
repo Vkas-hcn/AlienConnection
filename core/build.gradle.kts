@@ -90,7 +90,6 @@ dependencies {
     api("androidx.core:core-ktx:1.9.0")
     api("com.google.android.material:material:1.8.0")
     api("androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0")
-    implementation( "com.tencent:mmkv:1.3.0")
     api("androidx.lifecycle:lifecycle-livedata-core-ktx:$lifecycleVersion")
     api("androidx.preference:preference:1.2.0")
     api("androidx.room:room-runtime:$roomVersion")

@@ -29,13 +29,11 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.PowerManager
 import android.text.format.Formatter
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import com.github.shadowsocks.Core
-import com.github.shadowsocks.MkUtils
 import com.github.shadowsocks.aidl.IShadowsocksServiceCallback
 import com.github.shadowsocks.aidl.TrafficStats
 import com.github.shadowsocks.core.R
@@ -66,7 +64,27 @@ class ServiceNotification(private val service: BaseService.Interface, profileNam
                             Formatter.formatFileSize(service, stats.txTotal),
                             Formatter.formatFileSize(service, stats.rxTotal)))
                 }
-                MkUtils.getCoerwSppppData(service, stats)
+                val data = (service as Context).getString(
+                    com.github.shadowsocks.core.R.string.traffic,
+                    (service as Context).getString(
+                        com.github.shadowsocks.core.R.string.speed,
+                        Formatter.formatFileSize((service as Context), stats.txRate)
+                    ),
+                    (service as Context).getString(
+                        com.github.shadowsocks.core.R.string.speed,
+                        Formatter.formatFileSize((service as Context), stats.rxRate)
+                    )
+                )
+                val pattern = """([\d.]+)\s*([^\s]+)\s*([↑↓])\s*([\d.]+)\s*([^\s]+)\s*([↑↓])""".toRegex()
+                val matches = pattern.find(data)
+                if (matches != null) {
+                    val (value1, unit1, arrow1, value2, unit2, arrow2) = matches.destructured
+                    val intent = Intent("com.beetle.chili.speed")
+                    intent.putExtra("download", "$value1 $unit1")
+                    intent.putExtra("upload", "$value2 $unit2")
+                    Core.app.sendBroadcast(intent)
+                }
+
                 show()
             }
             override fun trafficPersisted(profileId: Long) { }

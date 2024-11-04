@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -12,9 +12,10 @@
         android:supportsRtl="true"
         tools:replace="android:fullBackupContent"
         android:theme="@style/Theme.AlienConnection"
+        android:name=".aleis.App"
         tools:targetApi="31">
         <activity
-            android:name=".StartActivity"
+            android:name=".uasndje.StartActivity"
             android:launchMode="singleTop"
             android:screenOrientation="portrait"
             android:exported="true">
@@ -24,8 +25,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".MainActivity"
+        <activity android:name=".uasndje.MainActivity"
             android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
+        <activity android:name=".uasndje.EndActivity"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
+        <activity android:name=".uasndje.ListActivity"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
+        <activity android:name=".uasndje.HisActivity"
+            android:launchMode="singleTop"
             android:screenOrientation="portrait"
             android:exported="false" />
     </application>
