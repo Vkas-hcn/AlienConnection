@@ -1,6 +1,8 @@
 package com.beetle.chili.triggers.connection.uasndje
 
 import android.app.Activity
+import android.content.ContentValues
+import android.content.ContextParams
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -55,6 +57,8 @@ class EndActivity : AppCompatActivity() {
         binding.vpnState = DataUtils.getVpnIsConnect()
         if (!DataUtils.getVpnIsConnect()) {
             DataUtils.editHisVpn(DataUtils.getNowVpn().vpnDate)
+        } else {
+            DataUtils.endTime = "00:00:00"
         }
         if (DataUtils.clickVpn.isNotBlank()) {
             DataUtils.nowVpn = DataUtils.clickVpn
@@ -65,7 +69,7 @@ class EndActivity : AppCompatActivity() {
             getEndTIme()
             showInformation()
         } else {
-            DataUtils.endTime = "00:00:00"
+            binding.endTimeValue.text = DataUtils.endTime
             binding.endTime.text = getString(R.string.disconnected_succeed)
         }
     }

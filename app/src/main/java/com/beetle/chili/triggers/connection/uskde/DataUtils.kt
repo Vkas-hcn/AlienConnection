@@ -175,8 +175,8 @@ object DataUtils {
     fun getNowVpn(): VInForBean {
         return try {
             val vpn = Gson().fromJson(nowVpn, VInForBean::class.java)
-            if(vpn.host.isBlank()){
-                nowVpn =""
+            if (vpn.host.isBlank()) {
+                nowVpn = ""
             }
             Gson().fromJson(nowVpn, VInForBean::class.java)
         } catch (e: Exception) {
@@ -217,8 +217,7 @@ object DataUtils {
     }
 
     fun getSmartList(): VInForBean {
-        val dataBean = getOnlineListVpn() ?:
-        return  VInForBean(isSmart=true)
+        val dataBean = getOnlineListVpn() ?: return VInForBean(isSmart = true)
         val random = (0 until dataBean.data.smart_list.size).random()
         val smart = dataBean.data.smart_list[random]
         smart.isSmart = true
@@ -233,7 +232,11 @@ object DataUtils {
         return data
     }
 
-    suspend fun haveVpnData(loadingStartFun: () -> Unit, loadingEndFun: () -> Unit,nextFun: () -> Unit) {
+    suspend fun haveVpnData(
+        loadingStartFun: () -> Unit,
+        loadingEndFun: () -> Unit,
+        nextFun: () -> Unit
+    ) {
         if (getOnlineListVpn() == null) {
             loadingStartFun()
             getOnlineVpnData(App.appComponent)

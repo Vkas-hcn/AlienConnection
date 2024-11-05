@@ -94,7 +94,7 @@
                 android:id="@+id/tv_fa"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Today's Duration"
+                android:text="Favorite Countries"
                 android:textColor="#80FFFFFF"
                 android:textSize="15sp"
                 app:layout_constraintStart_toStartOf="parent"

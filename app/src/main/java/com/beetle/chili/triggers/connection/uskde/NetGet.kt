@@ -17,9 +17,53 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import android.util.Base64
-
+import android.webkit.WebSettings
+import kotlinx.coroutines.delay
+import org.json.JSONObject
 object NetGet {
     private var getUrlCount = 0
+    fun inspectCountry() {
+        getUrlCount++
+        val pair = getUrl()
+        val url = URL(pair.first)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            var connection: HttpURLConnection? = null
+            try {
+                connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("User-Agent", WebSettings.getDefaultUserAgent(App.appComponent))
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+
+                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                    val reader = BufferedReader(InputStreamReader(connection.inputStream))
+                    val responseText = reader.readText()
+                    reader.close()
+
+                    runCatching {
+                        val json = JSONObject(responseText)
+                        DataUtils.htp_country = json.getString(pair.second)
+                    }
+                } else {
+                    // 非200响应代码时，延迟重试
+                    retryInspectCountry()
+                }
+            } catch (e: Exception) {
+                // 请求失败时，延迟重试
+                retryInspectCountry()
+            } finally {
+                connection?.disconnect()
+            }
+        }
+    }
+
+    fun retryInspectCountry() {
+        CoroutineScope(Dispatchers.IO).launch {
+            delay(3000)
+            inspectCountry()
+        }
+    }
 
     private fun getUrl(): Pair<String, String> {
         if (getUrlCount <= 3) {

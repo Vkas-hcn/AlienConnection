@@ -43,6 +43,7 @@ import com.github.shadowsocks.database.ProfileManager
 import com.github.shadowsocks.preference.DataStore
 import com.github.shadowsocks.preference.OnPreferenceDataStoreChangeListener
 import com.github.shadowsocks.utils.Key
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -196,11 +197,7 @@ class MainActivity : AppCompatActivity(),
             }
         }
         binding.tvPp.setOnClickListener {
-            startActivity(
-                Intent(
-                    "android.intent.action.VIEW", Uri.parse(ZongData.ppUrl)
-                )
-            )
+            startActivity(Intent(this, WebActivity::class.java))
         }
         binding.tvShare.setOnClickListener {
             shareText(
@@ -214,7 +211,7 @@ class MainActivity : AppCompatActivity(),
         listPage.launch(Intent(this@MainActivity, ListActivity::class.java))
     }
 
-    private fun jumpToEnd(){
+    private fun jumpToEnd() {
         if (lifecycle.currentState == Lifecycle.State.RESUMED) {
             endPage.launch(Intent(this, EndActivity::class.java))
         }
@@ -343,7 +340,12 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun setSkServerData(profile: Profile): Profile {
-        val data = DataUtils.getNowVpn()
+        var data = DataUtils.getNowVpn()
+        if (data.isSmart) {
+            DataUtils.nowVpn = Gson().toJson(DataUtils.getSmartList())
+            data = DataUtils.getNowVpn()
+            setVpnUi()
+        }
         profile.name = data.getName()
         profile.host = data.host
         profile.password = data.password
@@ -434,7 +436,8 @@ class MainActivity : AppCompatActivity(),
             }
         }
     }
-    fun setTextSpan(){
+
+    fun setTextSpan() {
         val content = "Current Information"
         val spannable = SpannableString(content).apply {
             setSpan(UnderlineSpan(), 0, content.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
