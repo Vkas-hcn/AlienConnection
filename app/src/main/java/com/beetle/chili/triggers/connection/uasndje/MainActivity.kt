@@ -4,9 +4,13 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.UnderlineSpan
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -27,7 +31,9 @@ import com.beetle.chili.triggers.connection.brslke.SsSpeed
 import com.beetle.chili.triggers.connection.databinding.ActivityMainBinding
 import com.beetle.chili.triggers.connection.imsued.SpeedImp
 import com.beetle.chili.triggers.connection.uskde.DataUtils
+import com.beetle.chili.triggers.connection.uskde.DataUtils.shareText
 import com.beetle.chili.triggers.connection.uskde.NetGet
+import com.beetle.chili.triggers.connection.uskde.ZongData
 import com.github.shadowsocks.Core
 import com.github.shadowsocks.aidl.IShadowsocksService
 import com.github.shadowsocks.aidl.ShadowsocksConnection
@@ -54,6 +60,7 @@ class MainActivity : AppCompatActivity(),
     val connection = ShadowsocksConnection(true)
     var nowClickState: Int = 1
     private var timeJob: Job? = null
+    private var connectJob: Job? = null
 
     private val imp by lazy {
         object : SpeedImp {
@@ -129,6 +136,7 @@ class MainActivity : AppCompatActivity(),
             }
         connection.connect(this, this)
         setVpnUi()
+        setTextSpan()
     }
 
     private fun setVpnUi() {
@@ -160,9 +168,20 @@ class MainActivity : AppCompatActivity(),
         }
         binding.llService.setOnClickListener {
             clickBlock {
-                if (lifecycle.currentState == Lifecycle.State.RESUMED) {
-                    listPage.launch(Intent(this, ListActivity::class.java))
+                lifecycleScope.launch {
+                    if (lifecycle.currentState == Lifecycle.State.RESUMED) {
+                        DataUtils.haveVpnData({ binding.showLoading = true }, {
+                            binding.showLoading = false
+                            jumpToList()
+                        }, { jumpToList() })
+                    }
                 }
+
+            }
+        }
+        binding.tvCurrent.setOnClickListener {
+            clickBlock {
+                jumpToEnd()
             }
         }
         binding.mainImgState.setOnClickListener {
@@ -175,6 +194,29 @@ class MainActivity : AppCompatActivity(),
             clickBlock {
                 showVpnResult()
             }
+        }
+        binding.tvPp.setOnClickListener {
+            startActivity(
+                Intent(
+                    "android.intent.action.VIEW", Uri.parse(ZongData.ppUrl)
+                )
+            )
+        }
+        binding.tvShare.setOnClickListener {
+            shareText(
+                "https://play.google.com/store/apps/details?id=${this.packageName}",
+                "Share App"
+            )
+        }
+    }
+
+    private fun jumpToList() {
+        listPage.launch(Intent(this@MainActivity, ListActivity::class.java))
+    }
+
+    private fun jumpToEnd(){
+        if (lifecycle.currentState == Lifecycle.State.RESUMED) {
+            endPage.launch(Intent(this, EndActivity::class.java))
         }
     }
 
@@ -221,18 +263,31 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun startVpn() {
-        nowClickState = if (DataUtils.getVpnIsConnect()) {
-            2
-        } else {
-            0
-        }
-        binding.showVpnState = 1
-        lifecycleScope.launch {
+        var noData = false
+        connectJob?.cancel()
+        connectJob = lifecycleScope.launch {
+            DataUtils.haveVpnData(
+                { binding.showLoading = true },
+                { binding.showLoading = false },
+                {
+                    noData = true
+                })
+            if (!noData) {
+                return@launch
+            }
+            nowClickState = if (DataUtils.getVpnIsConnect()) {
+                2
+            } else {
+                0
+            }
+            binding.showVpnState = 1
+            connectJob?.cancel()
             setVpnConfig()
             delay(2000)
             if (nowClickState == 2) {
                 Core.stopService()
-            } else {
+            }
+            if (nowClickState == 0) {
                 DataUtils.addHisVpn()
                 Core.startService()
             }
@@ -244,9 +299,7 @@ class MainActivity : AppCompatActivity(),
             return
         }
         nowClickState = 1
-        if (lifecycle.currentState == Lifecycle.State.RESUMED) {
-            endPage.launch(Intent(this, EndActivity::class.java))
-        }
+        jumpToEnd()
     }
 
     override fun onStart() {
@@ -256,6 +309,14 @@ class MainActivity : AppCompatActivity(),
 
     override fun onStop() {
         super.onStop()
+        if (binding?.showVpnState!! == 1 && nowClickState == 0) {
+            nowClickState = 1
+            binding.showVpnState = 0
+        }
+        if (binding?.showVpnState!! == 1 && nowClickState == 2) {
+            nowClickState = 1
+            binding.showVpnState = 2
+        }
     }
 
     override fun onResume() {
@@ -286,7 +347,7 @@ class MainActivity : AppCompatActivity(),
         profile.name = data.getName()
         profile.host = data.host
         profile.password = data.password
-        profile.method = "chacha20-ietf-poly1305"
+        profile.method = data.methode
         profile.remotePort = data.port
         return profile
     }
@@ -302,6 +363,7 @@ class MainActivity : AppCompatActivity(),
                 }.format(System.currentTimeMillis() - DataUtils.selectTime)
                 binding.mainTimeValue.text = t
                 DataUtils.endTime = t
+                DataUtils.editHisVpn(DataUtils.getNowVpn().vpnDate)
             }
         }
     }
@@ -309,7 +371,6 @@ class MainActivity : AppCompatActivity(),
     private fun stopTime() {
         timeJob?.cancel()
         binding.mainTimeValue.text = "00:00:00"
-
     }
 
     private fun connectFun() {
@@ -372,5 +433,13 @@ class MainActivity : AppCompatActivity(),
                 connection.connect(this, this)
             }
         }
+    }
+    fun setTextSpan(){
+        val content = "Current Information"
+        val spannable = SpannableString(content).apply {
+            setSpan(UnderlineSpan(), 0, content.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        binding.tvCurrent.text = spannable
+
     }
 }

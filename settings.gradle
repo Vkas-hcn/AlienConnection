@@ -13,6 +13,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AlienConnection"
+rootProject.name = "BoltSecure"
 include ':app'
 include ':core'

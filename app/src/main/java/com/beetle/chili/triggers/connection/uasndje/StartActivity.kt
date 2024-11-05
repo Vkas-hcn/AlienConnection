@@ -11,6 +11,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.beetle.chili.triggers.connection.R
 import com.beetle.chili.triggers.connection.databinding.VvSsBinding
+import com.beetle.chili.triggers.connection.uskde.DataUtils
+import com.beetle.chili.triggers.connection.uskde.NetGet
 
 class StartActivity : AppCompatActivity() {
     val binding by lazy { VvSsBinding.inflate(layoutInflater) }
@@ -32,6 +34,7 @@ class StartActivity : AppCompatActivity() {
 
             }
         })
+        DataUtils.getOnlineVpnData(this)
         binding.alienProgressBar.max = progressBarMax
         startProgress()
     }

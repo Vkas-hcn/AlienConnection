@@ -1,10 +1,12 @@
 package com.beetle.chili.triggers.connection.uasndje
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -17,6 +19,7 @@ import com.beetle.chili.triggers.connection.databinding.VvEeBinding
 import com.beetle.chili.triggers.connection.databinding.VvLlBinding
 import com.beetle.chili.triggers.connection.databinding.VvSsBinding
 import com.beetle.chili.triggers.connection.uskde.DataUtils
+import com.google.gson.Gson
 
 class ListActivity : AppCompatActivity() {
     val binding by lazy { VvLlBinding.inflate(layoutInflater) }
@@ -32,6 +35,7 @@ class ListActivity : AppCompatActivity() {
             insets
         }
         intData()
+        clickBtn()
         initAdapter()
     }
 
@@ -42,8 +46,43 @@ class ListActivity : AppCompatActivity() {
 
     private fun initAdapter() {
         vpnServerBeanList = DataUtils.getListVpn()
+        binding.noData = vpnServerBeanList == null
         binding.listList.layoutManager = LinearLayoutManager(this)
         serviceAdaoter = vpnServerBeanList?.let { ServiceAdaoter(it, this) }
         binding.listList.adapter = serviceAdaoter
+        binding.listSmart.itemLayout.setOnClickListener {
+            val jsonBean = DataUtils.getSmartList()
+            if (App.vvState) {
+                showDisConnectFun {
+                    DataUtils.clickVpn = Gson().toJson(jsonBean)
+                    endThisPage()
+                }
+            } else {
+                DataUtils.nowVpn = Gson().toJson(jsonBean)
+                endThisPage()
+            }
+        }
+    }
+    private fun clickBtn() {
+        binding.appCompatTextView.setOnClickListener {
+            finish()
+        }
+    }
+    fun endThisPage() {
+        val data = Intent().apply {
+            putExtra("end", "list")
+        }
+        setResult(Activity.RESULT_OK, data)
+        finish()
+    }
+
+    fun showDisConnectFun(nextFun: () -> Unit) {
+        AlertDialog.Builder(this)
+            .setTitle("Tip")
+            .setMessage("Whether To Disconnect The Current Connection")
+            .setIcon(R.mipmap.ic_launcher)
+            .setPositiveButton("YES") { _, _ -> nextFun() }
+            .setNegativeButton("NO", null)
+            .show()
     }
 }

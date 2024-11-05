@@ -1,56 +1,16 @@
 package com.beetle.chili.triggers.connection.uskde
 
+import com.beetle.chili.triggers.connection.BuildConfig
+
 object ZongData {
-    val vpnList = """
-        {
-          "code": 200,
-          "msg": "",
-          "data": {
-            "smart_list": [
-              {
-                "mode": "open",
-                "host": "195.234.82.34",
-                "port": 1234,
-                "password": "O6UcTwyLMDfAJqvdC5.l2hb",
-                "city": "Los Angeles",
-                "country_name": "United States"
-              },
-              {
-                "mode": "open",
-                "host": "195.234.82.35",
-                "port": 1232,
-                "password": "O6UcTwyLMDfAJqvdC5.l2hb",
-                "city": "Tokyo",
-                "country_name": "Japan"
-              }
-            ],
-            "server_list": [
-              {
-                "mode": "open",
-                "host": "195.234.82.34",
-                "port": 443,
-                "password": "O6UcTwyLMDfAJqvdC5.l2hb",
-                "city": "Los Angeles",
-                "country_name": "United States"
-              },
-              {
-                "mode": "open",
-                "host": "4.4.4.4",
-                "port": 443,
-                "password": "O6UcTwyLMDfAJqvdC5.l2hb",
-                "city": "Singapore",
-                "country_name": "Singapore"
-              },
-              {
-                "mode": "open",
-                "host": "115.224.12.24",
-                "port": 443,
-                "password": "O6UcTwyLMDfAJqvdC5.l2hb",
-                "city": "Sydney",
-                "country_name": "Australia"
-              }
-            ]
-          }
-        }
-    """.trimIndent()
+    val ppUrl = if (BuildConfig.DEBUG) {
+        "https://www.baidu.com/"
+    } else {
+        "https://api.v2rayss.com/v2/v2ray/v2ray_list.php"
+    }
+    val vpnOnline = if (BuildConfig.DEBUG) {
+        "https://test.shieldproect.com/cZM/MkX/RQF/"
+    } else {
+        "https://api.shieldproect.com/cZM/MkX/RQF/"
+    }
 }

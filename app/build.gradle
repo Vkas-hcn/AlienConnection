@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         //TODO package name
-        namespace 'com.beetle.chili.triggers.connection'
+        applicationId 'com.beetle.chili.triggers.connection'
         minSdk 24
         targetSdk 34
         versionCode 1

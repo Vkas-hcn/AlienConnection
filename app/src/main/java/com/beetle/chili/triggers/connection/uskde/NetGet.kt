@@ -8,6 +8,15 @@ import android.net.NetworkCapabilities
 import com.beetle.chili.triggers.connection.aleis.App
 import java.util.Locale
 import kotlin.system.exitProcess
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
+import android.util.Base64
 
 object NetGet {
     private var getUrlCount = 0
@@ -61,5 +70,60 @@ object NetGet {
             }
         }
         return false
+    }
+
+
+
+    interface Callback {
+        fun onSuccess(response: String)
+        fun onFailure(error: String)
+    }
+
+    fun get(context: Context, urlString: String, callback: Callback) {
+        CoroutineScope(Dispatchers.IO).launch {
+            var connection: HttpURLConnection? = null
+            try {
+                val url = URL(urlString)
+                connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("XER", context.packageName)
+                connection.setRequestProperty("PECSA", "ZZ")
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+                val responseCode = connection.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    val reader = BufferedReader(InputStreamReader(connection.inputStream))
+                    val response = reader.readText()
+                    reader.close()
+                    val processedResponse = processResponse(response)
+
+                    withContext(Dispatchers.Main) {
+                        callback.onSuccess(processedResponse)
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        callback.onFailure("Error: $responseCode")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    callback.onFailure("Exception: ${e.message}")
+                }
+            } finally {
+                connection?.disconnect()
+            }
+        }
+    }
+    // 处理响应字符串的方法
+    fun processResponse(response: String): String {
+        // 去掉头部 50 个字符
+        val truncatedResponse = if (response.length > 50) response.substring(50) else ""
+        // 大小写互换
+        val swappedResponse = truncatedResponse.map {
+            if (it.isUpperCase()) it.lowercaseChar() else it.uppercaseChar()
+        }.joinToString("")
+        // 使用 Base64 解码为字节数组并转换为字符串
+        val decodedBytes = Base64.decode(swappedResponse, Base64.DEFAULT)
+        return String(decodedBytes, Charsets.UTF_8)
     }
 }

@@ -17,7 +17,10 @@ import com.beetle.chili.triggers.connection.uasndje.ListActivity
 import com.beetle.chili.triggers.connection.uskde.DataUtils
 import com.google.gson.Gson
 
-class ServiceAdaoter (private val vpnList: MutableList<VInForBean>, private val activity: ListActivity) :
+class ServiceAdaoter(
+    private val vpnList: MutableList<VInForBean>,
+    private val activity: ListActivity
+) :
     RecyclerView.Adapter<ServiceAdaoter.AppViewHolder>() {
 
     class AppViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -38,7 +41,9 @@ class ServiceAdaoter (private val vpnList: MutableList<VInForBean>, private val 
             Gson().fromJson(it, VInForBean::class.java)
         }
 
-        holder.tvCou.text = item.getName()
+        holder.tvCou.text = if (!item.isSmart) {
+            item.getName() + "-0${position+1}"
+        } else item.getName()
         holder.imgFlag.setImageResource(
             if (item.isSmart) R.drawable.icon_s_logo else item.getIcon()
         )
@@ -61,31 +66,15 @@ class ServiceAdaoter (private val vpnList: MutableList<VInForBean>, private val 
 
     private fun clickFun(jsonBean: VInForBean) {
         if (App.vvState) {
-            showDisConnectFun {
+            activity.showDisConnectFun {
                 DataUtils.clickVpn = Gson().toJson(jsonBean)
-                endThisPage()
+                activity.endThisPage()
             }
         } else {
             DataUtils.nowVpn = Gson().toJson(jsonBean)
-            endThisPage()
+            activity.endThisPage()
         }
     }
 
-    private fun endThisPage() {
-        val data = Intent().apply {
-            putExtra("end", "list")
-        }
-        activity.setResult(Activity.RESULT_OK, data)
-        activity.finish()
-    }
 
-    private fun showDisConnectFun(nextFun: () -> Unit) {
-        AlertDialog.Builder(activity)
-            .setTitle("Tip")
-            .setMessage("Whether To Disconnect The Current Connection")
-            .setIcon(R.mipmap.ic_launcher)
-            .setPositiveButton("YES") { _, _ -> nextFun() }
-            .setNegativeButton("NO", null)
-            .show()
-    }
 }

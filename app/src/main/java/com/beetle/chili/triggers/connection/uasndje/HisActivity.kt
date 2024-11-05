@@ -5,6 +5,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -19,6 +21,7 @@ import com.beetle.chili.triggers.connection.databinding.VvEeBinding
 import com.beetle.chili.triggers.connection.databinding.VvHisBinding
 import com.beetle.chili.triggers.connection.databinding.VvSsBinding
 import com.beetle.chili.triggers.connection.uskde.DataUtils
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -27,6 +30,8 @@ class HisActivity : AppCompatActivity() {
     val binding by lazy { VvHisBinding.inflate(layoutInflater) }
     private var vpnServerBeanList: MutableList<VInForBean>? = null
     private var serviceAdaoter: HistoryAdaoter? = null
+    var endTimeJob: Job? = null
+    var totalTime = "00:00:00"
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -49,14 +54,34 @@ class HisActivity : AppCompatActivity() {
             finish()
         }
     }
+
     private fun initAdapter() {
         vpnServerBeanList = DataUtils.getHisListVpn()
+        val (totalTimeEnd, mostConnectedServer) = DataUtils.getConnectionStats()
+        totalTime = totalTimeEnd
+        binding.tvIp2.text = totalTime
+        val countryName = mostConnectedServer?.let { DataUtils.extractCountryName(it) }
+        countryName?.let { DataUtils.getCountryIcon(it) }
+            ?.let { binding.itemFfff.setImageResource(it) }
+        binding.tvCccc.text = mostConnectedServer
         binding.hisList.layoutManager = LinearLayoutManager(this)
-        serviceAdaoter = vpnServerBeanList?.let { HistoryAdaoter(it) }
+        serviceAdaoter = vpnServerBeanList?.let { HistoryAdaoter(it, this@HisActivity) }
         binding.hisList.adapter = serviceAdaoter
-        if(vpnServerBeanList?.isEmpty() == true){
+        if (vpnServerBeanList?.isEmpty() == true) {
             binding.hisList.visibility = android.view.View.GONE
             binding.tvNoData.visibility = android.view.View.VISIBLE
+        }
+    }
+
+    fun getEndTIme(item: VInForBean, tvTime: TextView) {
+        endTimeJob?.cancel()
+        endTimeJob = lifecycleScope.launch {
+            while (isActive) {
+                tvTime.text = DataUtils.endTime
+                DataUtils.editHisVpn(item.vpnDate)
+                binding.tvIp2.text = DataUtils.addTimes(totalTime,DataUtils.endTime)
+                delay(1000)
+            }
         }
     }
 }

@@ -17,26 +17,38 @@ data class AlienBean(
 
 @Keep
 data class Data(
+    @SerializedName("TVJAd")
     val server_list: MutableList<VInForBean>,
+    @SerializedName("PUPOKDOVe")
     val smart_list: MutableList<VInForBean>
 )
 
 @Keep
 data class VInForBean(
+    @SerializedName("jse")
     var host: String = "",
+
+    @SerializedName("fPFraKf")
     var port: Int = 0,
+    @SerializedName("ABtbZQk")
     var password: String = "",
+
+    @SerializedName("AHXUfig")
     var methode: String = "",
 
+    @SerializedName("drsagpZSH")
     var city: String = "",
+
+    @SerializedName("bGblZeK")
     var country_name: String = "",
+
     var isSmart: Boolean = false,
 
     var connectTime: String = "",
     var vpnDate: String = ""
 ) : Serializable {
     fun getName(): String {
-        return if (isSmart) "Smart Server" else "$country_name - $city"
+        return if (isSmart) "Smart Server" else "$country_name-$city"
     }
 
     fun getFistName(): String {
@@ -56,9 +68,10 @@ data class VInForBean(
     }
 
     fun getVpnDateTime(): String {
-        // 格式10/24 2024
+        // 格式 10/24 2024
         val dateFormat = SimpleDateFormat("MM/dd yyyy", Locale.getDefault())
-        val date = Date(vpnDate)
+        val timestamp = vpnDate.toLong()
+        val date = Date(timestamp)
         return dateFormat.format(date)
     }
 

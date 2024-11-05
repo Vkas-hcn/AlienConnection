@@ -22,13 +22,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-class HistoryAdaoter (private val vpnList: MutableList<VInForBean>) :
+class HistoryAdaoter(
+    private val vpnList: MutableList<VInForBean>,
+    private val activity: HisActivity
+) :
     RecyclerView.Adapter<HistoryAdaoter.AppViewHolder>() {
 
     class AppViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val imgFlag: AppCompatImageView = view.findViewById(R.id.item_flg)
         val tvCou: TextView = view.findViewById(R.id.tv_coutory)
         val tvTime: TextView = view.findViewById(R.id.tv_time)
+        val tvCreateTime: TextView = view.findViewById(R.id.tv_create_time)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
@@ -42,24 +46,20 @@ class HistoryAdaoter (private val vpnList: MutableList<VInForBean>) :
         val vpnCharBean = DataUtils.nowVpn.let {
             Gson().fromJson(it, VInForBean::class.java)
         }
-
+        holder.tvCreateTime.text = item.getVpnDateTime()
         holder.tvCou.text = item.getName()
         holder.imgFlag.setImageResource(
             if (item.isSmart) R.drawable.icon_s_logo else item.getIcon()
         )
-
-
-        holder.tvTime.text = item.connectTime
-
+        if (App.vvState && vpnCharBean.vpnDate == item.vpnDate) {
+            activity.getEndTIme(item, holder.tvTime)
+        } else {
+            holder.tvTime.text = item.connectTime
+        }
     }
-//    private fun getEndTIme() {
-//        lifecycleScope.launch {
-//            while (isActive) {
-//                binding.endTimeValue.text = DataUtils.endTime
-//                delay(1000)
-//            }
-//        }
-//    }
+
+
+
     override fun getItemCount(): Int = vpnList.size
 
 }
