@@ -79,7 +79,7 @@ class ListActivity : AppCompatActivity() {
     fun showDisConnectFun(nextFun: () -> Unit) {
         AlertDialog.Builder(this)
             .setTitle("Tip")
-            .setMessage("Whether To Disconnect The Current Connection")
+            .setMessage("Do you want to switch servers? You need to disconnect from the current server before switching. Confirm to continue?")
             .setIcon(R.mipmap.ic_launcher)
             .setPositiveButton("YES") { _, _ -> nextFun() }
             .setNegativeButton("NO", null)
