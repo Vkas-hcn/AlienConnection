@@ -12,7 +12,6 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.UnderlineSpan
 import android.util.Log
-import android.view.View
 import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
@@ -22,10 +21,18 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceDataStore
 import com.beetle.chili.triggers.connection.R
+import com.beetle.chili.triggers.connection.adkfieo.AdManager
+import com.beetle.chili.triggers.connection.adkfieo.GetMobData
+import com.beetle.chili.triggers.connection.adkfieo.GetMobData.getConnectAdType
+import com.beetle.chili.triggers.connection.adkfieo.GetMobData.getEndAdType
+import com.beetle.chili.triggers.connection.adkfieo.GetMobData.getHomeAdType
+import com.beetle.chili.triggers.connection.adkfieo.GetMobData.getResultAdType
+import com.beetle.chili.triggers.connection.adkfieo.GetMobData.logAlien
 import com.beetle.chili.triggers.connection.aleis.App
 import com.beetle.chili.triggers.connection.brslke.SsSpeed
 import com.beetle.chili.triggers.connection.databinding.ActivityMainBinding
@@ -33,7 +40,6 @@ import com.beetle.chili.triggers.connection.imsued.SpeedImp
 import com.beetle.chili.triggers.connection.uskde.DataUtils
 import com.beetle.chili.triggers.connection.uskde.DataUtils.shareText
 import com.beetle.chili.triggers.connection.uskde.NetGet
-import com.beetle.chili.triggers.connection.uskde.ZongData
 import com.github.shadowsocks.Core
 import com.github.shadowsocks.aidl.IShadowsocksService
 import com.github.shadowsocks.aidl.ShadowsocksConnection
@@ -48,8 +54,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
@@ -62,6 +68,8 @@ class MainActivity : AppCompatActivity(),
     var nowClickState: Int = 1
     private var timeJob: Job? = null
     private var connectJob: Job? = null
+    private var jobHomeTdo: Job? = null
+    private var jobConnectJob: Job? = null
 
     private val imp by lazy {
         object : SpeedImp {
@@ -73,22 +81,36 @@ class MainActivity : AppCompatActivity(),
     }
 
     private val receiver by lazy { SsSpeed(imp) }
+
+    val webPage =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                showHomeAd()
+            }
+        }
     val hisPage =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
+                showHomeAd()
             }
         }
     val listPage =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
-                setVpnUi()
-                showVpnResult()
+                result.data?.getStringExtra("end")?.let { endValue ->
+                    if (endValue != "backlist") {
+                        setVpnUi()
+                        showVpnResult()
+                    }
+                }
+                showHomeAd()
             }
         }
 
     val endPage =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
+                showHomeAd()
                 result.data?.getStringExtra("end")?.let { endValue ->
                     Log.d("TAG", "Received end value: $endValue")
                     when (endValue) {
@@ -120,6 +142,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun initData() {
+        App.isHotStart = true
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             registerReceiver(
                 receiver,
@@ -197,7 +220,7 @@ class MainActivity : AppCompatActivity(),
             }
         }
         binding.tvPp.setOnClickListener {
-            startActivity(Intent(this, WebActivity::class.java))
+            webPage.launch(Intent(this@MainActivity, WebActivity::class.java))
         }
         binding.tvShare.setOnClickListener {
             shareText(
@@ -282,7 +305,7 @@ class MainActivity : AppCompatActivity(),
             setVpnConfig()
             delay(2000)
             if (nowClickState == 2) {
-                Core.stopService()
+                showConnectAd()
             }
             if (nowClickState == 0) {
                 DataUtils.addHisVpn()
@@ -291,12 +314,82 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun startToEndActicirty() {
+    private suspend fun startToEndActicirty() {
         if (nowClickState == 1) {
             return
         }
         nowClickState = 1
+        delay(300)
         jumpToEnd()
+    }
+
+    private fun showHomeAd() {
+        logAlien("showHomeAd")
+        jobHomeTdo?.cancel()
+        jobHomeTdo = null
+        if (GetMobData.getAdBlackData()) {
+            binding.adLayout.isVisible = false
+            return
+        }
+
+        binding.adLayout.isVisible = true
+        binding.imgOcAd.isVisible = true
+        if (AdManager.canShowAd(this@MainActivity, getHomeAdType()) == 1) {
+            binding.adLayoutAdmob.isVisible = false
+            AdManager.loadAd(this, getHomeAdType())
+        }
+        jobHomeTdo = lifecycleScope.launch {
+            delay(300)
+            while (isActive) {
+                if (AdManager.canShowAd(this@MainActivity, getHomeAdType()) == 2) {
+                    AdManager.showAd(this@MainActivity, getHomeAdType()) {
+                        logAlien("再次加载")
+                        AdManager.loadAd(this@MainActivity, getHomeAdType())
+                    }
+                    jobHomeTdo?.cancel()
+                    jobHomeTdo = null
+                    break
+                }
+                delay(500L)
+            }
+        }
+    }
+
+    private fun showConnectAd() {
+        if (GetMobData.getAdBlackData()) {
+            showFinishAd()
+            return
+        }
+        jobConnectJob?.cancel()
+        jobConnectJob = null
+        jobConnectJob = lifecycleScope.launch {
+            AdManager.loadAd(this@MainActivity, getConnectAdType())
+            val startTime = System.currentTimeMillis()
+            var elapsedTime: Long
+            try {
+                while (isActive) {
+                    elapsedTime = System.currentTimeMillis() - startTime
+                    if (elapsedTime >= (10000)) {
+                        Log.e("TAG", "连接超时")
+                        showFinishAd()
+                        break
+                    }
+                    if (AdManager.canShowAd(this@MainActivity, getConnectAdType()) == 2) {
+                        AdManager.showAd(this@MainActivity, getConnectAdType()) {
+                            logAlien("关闭插屏=${nowClickState}")
+                            if (nowClickState == 0) {
+                                AdManager.loadAd(this@MainActivity, getConnectAdType())
+                            }
+                            showFinishAd()
+                        }
+                        break
+                    }
+                    delay(500L)
+                }
+            } catch (e: Exception) {
+                showFinishAd()
+            }
+        }
     }
 
     override fun onStart() {
@@ -318,6 +411,10 @@ class MainActivity : AppCompatActivity(),
 
     override fun onResume() {
         super.onResume()
+        if (App.isHotStart) {
+            showHomeAd()
+            App.isHotStart = false
+        }
     }
 
     override fun onDestroy() {
@@ -375,6 +472,15 @@ class MainActivity : AppCompatActivity(),
         binding.mainTimeValue.text = "00:00:00"
     }
 
+    private fun showFinishAd() {
+        if (nowClickState == 0) {
+            connectFun()
+        }
+        if (nowClickState == 2) {
+            Core.stopService()
+        }
+    }
+
     private fun connectFun() {
         lifecycleScope.launch(Dispatchers.Main) {
             startToEndActicirty()
@@ -396,7 +502,9 @@ class MainActivity : AppCompatActivity(),
         when (state) {
             BaseService.State.Connected -> {
                 App.vvState = true
-                connectFun()
+                showConnectAd()
+                AdManager.loadAd(this, getEndAdType())
+                AdManager.loadAd(this, getResultAdType())
             }
 
             BaseService.State.Connecting -> {
@@ -405,6 +513,8 @@ class MainActivity : AppCompatActivity(),
             BaseService.State.Stopped -> {
                 App.vvState = false
                 disConnectFun()
+                AdManager.loadAd(this, getEndAdType())
+                AdManager.loadAd(this, getResultAdType())
             }
 
             else -> {

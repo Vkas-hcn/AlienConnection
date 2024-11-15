@@ -27,6 +27,10 @@ object DataUtils {
     }
     var selectTime = System.currentTimeMillis()
     var endTime = "00:00:00"
+    val o_ad_key = "bs_ad"
+    val o_gz_key = "Bo_se"
+
+
     var nowVpn: String
         get() = sharedPreferences.getString("nowVpn", "").toString()
         set(value) {
@@ -53,7 +57,35 @@ object DataUtils {
         set(value) {
             sharedPreferences.edit().putString("htp_country", value).apply()
         }
+    var firebaseAd: String
+        get() = sharedPreferences.getString("firebaseAd", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("firebaseAd", value).apply()
+        }
 
+    var firebaseGz: String
+        get() = sharedPreferences.getString("firebaseGz", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("firebaseGz", value).apply()
+        }
+
+    var ouMState: String
+        get() = sharedPreferences.getString("ouMState", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("ouMState", value).apply()
+        }
+
+    var bbbbbbDD: String
+        get() = sharedPreferences.getString("bbbbbbDD", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("bbbbbbDD", value).apply()
+        }
+
+    var BID: String
+        get() = sharedPreferences.getString("BID", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("BID", value).apply()
+        }
     fun getCountryIcon(name: String): Int {
         return when (name.replace(" ", "").lowercase()) {
             "australia" -> R.drawable.australia
@@ -86,17 +118,12 @@ object DataUtils {
 
     fun getHisListVpn(): MutableList<VInForBean>? {
         if (cachedHisBean == null) {
-            try {
-                cachedHisBean =
-                    Gson().fromJson(hisVpn, object : TypeToken<MutableList<VInForBean>>() {}.type)
+            cachedHisBean = try {
+                Gson().fromJson(hisVpn, object : TypeToken<MutableList<VInForBean>>() {}.type)
             } catch (e: JsonSyntaxException) {
-                // 记录日志
-                Log.e("VInForBean", "Failed to parse JSON: ${e.message}")
-                cachedHisBean = null
+                null
             } catch (e: JsonParseException) {
-                // 记录日志
-                Log.e("VInForBean", "Failed to parse JSON: ${e.message}")
-                cachedHisBean = null
+                null
             }
         }
         cachedHisBean = cachedHisBean?.sortedByDescending { it.vpnDate }?.toMutableList()

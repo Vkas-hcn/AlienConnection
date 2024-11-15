@@ -5,26 +5,40 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.beetle.chili.triggers.connection.R
 import com.beetle.chili.triggers.connection.adapter.ServiceAdaoter
+import com.beetle.chili.triggers.connection.adkfieo.AdManager
+import com.beetle.chili.triggers.connection.adkfieo.AdType
+import com.beetle.chili.triggers.connection.adkfieo.GetMobData
 import com.beetle.chili.triggers.connection.aleis.App
 import com.beetle.chili.triggers.connection.blkfh.VInForBean
 import com.beetle.chili.triggers.connection.databinding.VvEeBinding
 import com.beetle.chili.triggers.connection.databinding.VvLlBinding
 import com.beetle.chili.triggers.connection.databinding.VvSsBinding
 import com.beetle.chili.triggers.connection.uskde.DataUtils
+import com.beetle.chili.triggers.connection.wekgisa.LoadingDialog
 import com.google.gson.Gson
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 class ListActivity : AppCompatActivity() {
     val binding by lazy { VvLlBinding.inflate(layoutInflater) }
     private var vpnServerBeanList: MutableList<VInForBean>? = null
     private var serviceAdaoter: ServiceAdaoter? = null
+    private lateinit var loadingDialog: LoadingDialog
+    private var jobService: Job? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -37,11 +51,13 @@ class ListActivity : AppCompatActivity() {
         intData()
         clickBtn()
         initAdapter()
+        loadingDialog = LoadingDialog(this)
     }
 
     private fun intData() {
         val bean = DataUtils.getNowVpn()
         binding.listSmart.imgCheck.setImageResource(if (bean.isSmart && App.vvState) R.drawable.item_c else R.drawable.item_dis)
+        AdManager.loadAd(this, GetMobData.getServiceAdType())
     }
 
     private fun initAdapter() {
@@ -63,11 +79,20 @@ class ListActivity : AppCompatActivity() {
             }
         }
     }
+
     private fun clickBtn() {
         binding.appCompatTextView.setOnClickListener {
-            finish()
+            showServiceIntAd {
+                nextBackFun()
+            }
+        }
+        onBackPressedDispatcher.addCallback(this) {
+            showServiceIntAd {
+                nextBackFun()
+            }
         }
     }
+
     fun endThisPage() {
         val data = Intent().apply {
             putExtra("end", "list")
@@ -84,5 +109,50 @@ class ListActivity : AppCompatActivity() {
             .setPositiveButton("YES") { _, _ -> nextFun() }
             .setNegativeButton("NO", null)
             .show()
+    }
+
+    private fun nextBackFun() {
+        val data = Intent().apply {
+            putExtra("end", "backlist")
+        }
+        setResult(Activity.RESULT_OK, data)
+        loadingDialog.hideLoading()
+        finish()
+    }
+
+    private fun showServiceIntAd(nextFun: () -> Unit) {
+        jobService?.cancel()
+        jobService = null
+        jobService = lifecycleScope.launch {
+            if (GetMobData.getAdBlackData()) {
+                jobService?.cancel()
+                jobService = null
+                nextFun()
+                return@launch
+            }
+            if(AdManager.canShowAd(this@ListActivity, GetMobData.getServiceAdType())!=2){
+                AdManager.loadAd(this@ListActivity, GetMobData.getServiceAdType())
+            }
+            loadingDialog.showLoading()
+            try {
+                withTimeout(5000L) {
+                    while (isActive) {
+                        if (AdManager.canShowAd(
+                                this@ListActivity,
+                                GetMobData.getServiceAdType()
+                            ) == 2
+                        ) {
+                            AdManager.showAd(this@ListActivity, GetMobData.getServiceAdType()) {
+                                nextFun()
+                            }
+                            break
+                        }
+                        delay(500L)
+                    }
+                }
+            } catch (e: TimeoutCancellationException) {
+                nextFun()
+            }
+        }
     }
 }

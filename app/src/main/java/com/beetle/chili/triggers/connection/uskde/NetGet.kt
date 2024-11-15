@@ -18,8 +18,11 @@ import java.net.HttpURLConnection
 import java.net.URL
 import android.util.Base64
 import android.webkit.WebSettings
+import com.beetle.chili.triggers.connection.BuildConfig
 import kotlinx.coroutines.delay
 import org.json.JSONObject
+import java.net.URLEncoder
+
 object NetGet {
     private var getUrlCount = 0
     fun inspectCountry() {
@@ -32,7 +35,10 @@ object NetGet {
             try {
                 connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
-                connection.setRequestProperty("User-Agent", WebSettings.getDefaultUserAgent(App.appComponent))
+                connection.setRequestProperty(
+                    "User-Agent",
+                    WebSettings.getDefaultUserAgent(App.appComponent)
+                )
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
 
@@ -77,6 +83,9 @@ object NetGet {
 
 
     fun inspectConnect(activity: Activity): Boolean {
+        if(BuildConfig.DEBUG){
+            return false
+        }
         if (inspectNetwork().not()) {
             AlertDialog.Builder(activity).create().apply {
                 setCancelable(false)
@@ -115,7 +124,6 @@ object NetGet {
         }
         return false
     }
-
 
 
     interface Callback {
@@ -158,6 +166,59 @@ object NetGet {
             }
         }
     }
+
+    fun getMapData(
+        url: String,
+        map: Map<String, Any>, callback: Callback
+    ) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val queryParameters = StringBuilder()
+            for ((key, value) in map) {
+
+                queryParameters.append("&")
+                queryParameters.append(URLEncoder.encode(key, "UTF-8"))
+                queryParameters.append("=")
+                queryParameters.append(URLEncoder.encode(value.toString(), "UTF-8"))
+            }
+
+            val urlString = if (url.contains("?")) {
+                "$url&$queryParameters"
+            } else {
+                "$url?$queryParameters"
+            }
+            val url = URL(urlString)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 15000
+
+            try {
+
+                val responseCode = connection.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    val inputStream = connection.inputStream
+                    val reader = BufferedReader(InputStreamReader(inputStream))
+                    val response = StringBuilder()
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null) {
+                        response.append(line)
+                    }
+                    reader.close()
+                    inputStream.close()
+                    callback.onSuccess(response.toString())
+
+                } else {
+                    callback.onFailure("HTTP error: $responseCode")
+
+                }
+            } catch (e: Exception) {
+                callback.onFailure("HTTP error: ${e.message}")
+            } finally {
+                connection.disconnect()
+            }
+        }
+
+    }
+
     // 处理响应字符串的方法
     fun processResponse(response: String): String {
         // 去掉头部 50 个字符

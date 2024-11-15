@@ -7,21 +7,34 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.beetle.chili.triggers.connection.R
+import com.beetle.chili.triggers.connection.adkfieo.AdManager
+import com.beetle.chili.triggers.connection.adkfieo.AdType
+import com.beetle.chili.triggers.connection.adkfieo.GetMobData
 import com.beetle.chili.triggers.connection.databinding.VvEeBinding
 import com.beetle.chili.triggers.connection.databinding.VvSsBinding
 import com.beetle.chili.triggers.connection.uskde.DataUtils
+import com.beetle.chili.triggers.connection.wekgisa.LoadingDialog
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 class EndActivity : AppCompatActivity() {
     val binding by lazy { VvEeBinding.inflate(layoutInflater) }
+    private var jobEnd: Job? = null
+    private var jobResultJob: Job? = null
+    private lateinit var loadingDialog: LoadingDialog
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -36,13 +49,18 @@ class EndActivity : AppCompatActivity() {
             putExtra("end", "end")
         }
         setResult(Activity.RESULT_OK, data)
+        loadingDialog = LoadingDialog(this)
         showVpnState()
         clickMainBtn()
+        showResultAd()
     }
 
     private fun clickMainBtn() {
         binding.appCompatTextView.setOnClickListener {
-            finish()
+            nextFUn()
+        }
+        onBackPressedDispatcher.addCallback {
+            nextFUn()
         }
         binding.tvFast.setOnClickListener {
             navigateToHome("fast")
@@ -50,6 +68,13 @@ class EndActivity : AppCompatActivity() {
 
         binding.tvRe.setOnClickListener {
             navigateToHome("flushed")
+        }
+    }
+
+    private fun nextFUn() {
+        showEndIntAd {
+            finish()
+            loadingDialog.hideLoading()
         }
     }
 
@@ -96,5 +121,66 @@ class EndActivity : AppCompatActivity() {
         }
         setResult(Activity.RESULT_OK, data)
         finish()
+    }
+
+    private fun showEndIntAd(nextFun: () -> Unit) {
+        jobEnd?.cancel()
+        jobEnd = null
+        jobEnd = lifecycleScope.launch {
+            if (GetMobData.getAdBlackData()) {
+                jobEnd?.cancel()
+                jobEnd = null
+                nextFun()
+                return@launch
+            }
+            if (AdManager.canShowAd(this@EndActivity, GetMobData.getEndAdType()) != 2) {
+                AdManager.loadAd(this@EndActivity, GetMobData.getEndAdType())
+            }
+            loadingDialog.showLoading()
+            try {
+                withTimeout(5000L) {
+                    while (isActive) {
+                        if (AdManager.canShowAd(
+                                this@EndActivity,
+                                GetMobData.getEndAdType()
+                            ) == 2
+                        ) {
+                            AdManager.showAd(this@EndActivity, GetMobData.getEndAdType()) {
+                                nextFun()
+                            }
+                            break
+                        }
+                        delay(500L)
+                    }
+                }
+            } catch (e: TimeoutCancellationException) {
+                nextFun()
+            }
+        }
+    }
+
+    private fun showResultAd() {
+        jobResultJob?.cancel()
+        jobResultJob = null
+        binding.adLayout.isVisible = true
+        binding.imgOcAd.isVisible = true
+        if (AdManager.canShowAd(this@EndActivity, GetMobData.getResultAdType()) == 1) {
+            binding.adLayoutAdmob.isVisible = false
+            AdManager.loadAd(this, GetMobData.getResultAdType())
+        }
+        jobResultJob = lifecycleScope.launch {
+            delay(300)
+            while (isActive) {
+                if (AdManager.canShowAd(this@EndActivity, GetMobData.getResultAdType()) == 2) {
+                    AdManager.showAd(this@EndActivity, GetMobData.getResultAdType()) {
+
+                    }
+                    jobResultJob?.cancel()
+                    jobResultJob = null
+                    break
+                }
+                delay(500L)
+            }
+        }
     }
 }
