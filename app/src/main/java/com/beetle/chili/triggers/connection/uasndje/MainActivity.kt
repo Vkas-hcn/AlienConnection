@@ -411,9 +411,12 @@ class MainActivity : AppCompatActivity(),
 
     override fun onResume() {
         super.onResume()
-        if (App.isHotStart) {
-            showHomeAd()
-            App.isHotStart = false
+        lifecycleScope.launch {
+            delay(200)
+            if (lifecycle.currentState.name == Lifecycle.State.RESUMED.name && App.isHotStart) {
+                showHomeAd()
+                App.isHotStart = false
+            }
         }
     }
 

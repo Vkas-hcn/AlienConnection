@@ -135,13 +135,7 @@ class StartActivity : AppCompatActivity() {
         jobOpenTdo?.cancel()
         jobOpenTdo = null
         jobOpenTdo = lifecycleScope.launch {
-            delay(2000)
-            if (GetMobData.getAdBlackData()) {
-                jobOpenTdo?.cancel()
-                jobOpenTdo = null
-                onCountdownFinished()
-                return@launch
-            }
+            delay(1000)
             try {
                 withTimeout(10000L) {
                     while (isActive) {
@@ -196,7 +190,7 @@ class StartActivity : AppCompatActivity() {
         val debugSettings =
             ConsentDebugSettings.Builder(this)
                 .setDebugGeography(ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_EEA)
-                .addTestDeviceHashedId("BCD99A19DFC84C1B71AF2A884D73059C")
+                .addTestDeviceHashedId("E40FFA71B6A6FDF9954A2AB978DD556D")
                 .build()
         val params = ConsentRequestParameters
             .Builder()
