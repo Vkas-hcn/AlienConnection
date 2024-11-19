@@ -3,6 +3,7 @@ package com.beetle.chili.triggers.connection.uskde
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.beetle.chili.triggers.connection.BuildConfig
 import com.beetle.chili.triggers.connection.R
 import com.beetle.chili.triggers.connection.aleis.App
 import com.beetle.chili.triggers.connection.blkfh.AlienBean
@@ -19,6 +20,11 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 object DataUtils {
+    val tba_url = if (BuildConfig.DEBUG) {
+        "https://test-train.shieldproect.com/heavy/teem"
+    } else {
+        "https://train.shieldproect.com/espouse/elegant/walt"
+    }
     private val sharedPreferences by lazy {
         App.appComponent.getSharedPreferences(
             "sp_alien",
@@ -85,6 +91,21 @@ object DataUtils {
         get() = sharedPreferences.getString("BID", "").toString()
         set(value) {
             sharedPreferences.edit().putString("BID", value).apply()
+        }
+    var adjv: String
+        get() = sharedPreferences.getString("adjv", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("adjv", value).apply()
+        }
+    var installState: String
+        get() = sharedPreferences.getString("installState", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("installState", value).apply()
+        }
+    var llIp: String
+        get() = sharedPreferences.getString("llIp", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("llIp", value).apply()
         }
     fun getCountryIcon(name: String): Int {
         return when (name.replace(" ", "").lowercase()) {

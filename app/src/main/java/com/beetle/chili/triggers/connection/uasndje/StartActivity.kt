@@ -1,5 +1,6 @@
 package com.beetle.chili.triggers.connection.uasndje
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -12,6 +13,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import com.android.installreferrer.api.InstallReferrerClient
+import com.android.installreferrer.api.InstallReferrerStateListener
 import com.beetle.chili.triggers.connection.R
 import com.beetle.chili.triggers.connection.adkfieo.AdManager
 import com.beetle.chili.triggers.connection.adkfieo.AdType
@@ -24,7 +27,9 @@ import com.beetle.chili.triggers.connection.aleis.App
 import com.beetle.chili.triggers.connection.databinding.VvSsBinding
 import com.beetle.chili.triggers.connection.uskde.DataUtils
 import com.beetle.chili.triggers.connection.uskde.NetGet
+import com.beetle.chili.triggers.connection.wjfos.PutDataUtils
 import com.facebook.FacebookSdk
+import com.facebook.appevents.AppEventsLogger
 import com.google.android.ump.ConsentDebugSettings
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
@@ -54,8 +59,12 @@ class StartActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(binding.root)
         ouMSetAdSdk()
-        NetGet.inspectCountry()
-        DataUtils.getOnlineVpnData(this)
+        haveRefDataChangingBean(this)
+        lifecycleScope.launch {
+            NetGet.inspectCountry()
+            DataUtils.getOnlineVpnData(this@StartActivity)
+            PutDataUtils.emitSessionData()
+        }
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -98,6 +107,7 @@ class StartActivity : AppCompatActivity() {
                         logAlien("initFaceBook: $it")
                         FacebookSdk.setApplicationId(it)
                         FacebookSdk.sdkInitialize(App.appComponent)
+                        AppEventsLogger.activateApp(App.thisApplication)
                     }
                 }
 
@@ -211,6 +221,32 @@ class StartActivity : AppCompatActivity() {
                 DataUtils.ouMState = "1"
             }
         )
+    }
+
+    private fun haveRefDataChangingBean(context: Context) {
+        if (DataUtils.installState == "1") {
+            return
+        }
+        runCatching {
+            val referrerClient = InstallReferrerClient.newBuilder(context).build()
+            referrerClient.startConnection(object : InstallReferrerStateListener {
+                override fun onInstallReferrerSetupFinished(p0: Int) {
+                    when (p0) {
+                        InstallReferrerClient.InstallReferrerResponse.OK -> {
+                            lifecycleScope.launch {
+                                PutDataUtils.emitInstallData(context, referrerClient.installReferrer)
+                            }
+                        }
+                    }
+                    referrerClient.endConnection()
+                }
+
+                override fun onInstallReferrerServiceDisconnected() {
+                }
+            })
+        }.onFailure { e ->
+        }
+
     }
 
 }

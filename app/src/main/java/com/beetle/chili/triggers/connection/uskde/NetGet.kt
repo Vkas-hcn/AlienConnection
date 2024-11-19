@@ -19,8 +19,12 @@ import java.net.URL
 import android.util.Base64
 import android.webkit.WebSettings
 import com.beetle.chili.triggers.connection.BuildConfig
+import com.beetle.chili.triggers.connection.blkfh.Data
 import kotlinx.coroutines.delay
 import org.json.JSONObject
+import java.io.BufferedWriter
+import java.io.IOException
+import java.io.OutputStreamWriter
 import java.net.URLEncoder
 
 object NetGet {
@@ -50,6 +54,9 @@ object NetGet {
                     runCatching {
                         val json = JSONObject(responseText)
                         DataUtils.htp_country = json.getString(pair.second)
+                        if (!App.vvState) {
+                            DataUtils.llIp = json.getString("ip")
+                        }
                     }
                 } else {
                     // 非200响应代码时，延迟重试
@@ -231,4 +238,38 @@ object NetGet {
         val decodedBytes = Base64.decode(swappedResponse, Base64.DEFAULT)
         return String(decodedBytes, Charsets.UTF_8)
     }
+    fun postPutData(body: Any, callback: Callback) {
+        Thread {
+            var connection: HttpURLConnection? = null
+            try {
+                val urlConnection = URL(DataUtils.tba_url).openConnection() as HttpURLConnection
+                connection = urlConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                connection.setRequestProperty("Accept", "application/json")
+                connection.doOutput = true
+                connection.doInput = true
+
+                // Write body to the request
+                BufferedWriter(OutputStreamWriter(connection.outputStream, "UTF-8")).use { writer ->
+                    writer.write(body.toString())
+                    writer.flush()
+                }
+
+                val responseCode = connection.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
+                    callback.onSuccess(responseBody)
+                } else {
+                    val errorBody = connection.errorStream.bufferedReader().use { it.readText() }
+                    callback.onFailure(errorBody)
+                }
+            } catch (e: IOException) {
+                callback.onFailure("Network error: ${e.message}")
+            } finally {
+                connection?.disconnect()
+            }
+        }.start()
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.beetle.chili.triggers.connection.aleis
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
 import com.beetle.chili.triggers.connection.uasndje.MainActivity
@@ -8,6 +9,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Process
+import android.util.Log
+import com.adjust.sdk.Adjust
+import com.adjust.sdk.AdjustConfig
+import com.beetle.chili.triggers.connection.BuildConfig
 import com.beetle.chili.triggers.connection.adkfieo.AdManager
 import com.beetle.chili.triggers.connection.adkfieo.GetMobData
 import com.beetle.chili.triggers.connection.adkfieo.GetMobData.logAlien
@@ -25,11 +30,13 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
     var acFlashTotal = 0
     var exitAppTime = 0L
     var isFlashAppBackGround: Boolean = false
+
     companion object {
         lateinit var appComponent: Context
         lateinit var thisApplication: Application
         var isHotStart: Boolean = false
         var vvState = false
+        var paPageName = ""
     }
 
     override fun onCreate() {
@@ -45,11 +52,12 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
             Firebase.initialize(this)
             FirebaseApp.initializeApp(this)
             DataUtils.BID.let {
-                if(it.isBlank()){
-                    DataUtils.BID=UUID.randomUUID().toString()
+                if (it.isBlank()) {
+                    DataUtils.BID = UUID.randomUUID().toString()
                 }
             }
             GetMobData.getBlackList(this)
+            initAdJust(this)
         }
     }
 
@@ -65,6 +73,7 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
         }
         return false
     }
+
     private fun toSplash(activity: Activity) {
 
         if (activity is StartActivity) {
@@ -78,6 +87,7 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
         logAlien("toSplash")
         isHotStart = true
     }
+
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
     }
 
@@ -86,6 +96,8 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
 
         if (activity is AdActivity) {
             adActivity = activity
+        }else{
+            paPageName = activity.javaClass.simpleName
         }
         if (isFlashAppBackGround) {
             isFlashAppBackGround = false
@@ -94,7 +106,6 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
             }
         }
     }
-
 
 
     override fun onActivityResumed(activity: Activity) {
@@ -117,5 +128,36 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
     }
 
     override fun onActivityDestroyed(activity: Activity) {
+    }
+
+    @SuppressLint("HardwareIds")
+    private fun initAdJust(application: Application) {
+        Adjust.addSessionCallbackParameter(
+            "customer_user_id",
+            DataUtils.BID
+        )
+        val appToken: String
+        val environment: String
+
+        if (BuildConfig.DEBUG) {
+            appToken = "ih2pm2dr3k74"
+            environment = AdjustConfig.ENVIRONMENT_SANDBOX
+        } else {
+            appToken = "pc37fmeecd8g"
+            environment = AdjustConfig.ENVIRONMENT_PRODUCTION
+        }
+        val config = AdjustConfig(application, appToken, environment)
+        config.needsCost = true
+        config.setOnAttributionChangedListener { attribution ->
+            Log.e("TAG", "adjust=${attribution}")
+            if (DataUtils.adjv == "1" && attribution.network.isNotEmpty() && attribution.network.contains(
+                    "organic",
+                    true
+                ).not()
+            ) {
+                DataUtils.adjv = "1"
+            }
+        }
+        Adjust.onCreate(config)
     }
 }

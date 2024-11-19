@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Outline
 import android.os.SystemClock
+import android.util.Log
 import android.view.View
 import android.view.ViewOutlineProvider
 import android.widget.ImageView
@@ -27,10 +28,13 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import com.beetle.chili.triggers.connection.R
 import com.beetle.chili.triggers.connection.uskde.DataUtils
+import com.beetle.chili.triggers.connection.wjfos.PutDataUtils
+import com.beetle.chili.triggers.connection.wjfos.TbaAdBean
 
 object AdManager : LifecycleObserver {
     private val CACHE_DURATION = TimeUnit.HOURS.toMillis(1)
     private val CACHE_DURATION_TEST = TimeUnit.MINUTES.toMillis(1)
+
     // 各种广告类型的缓存实例
     private var appOpenAd: AppOpenAd? = null
     private var nativeHomeAd: NativeAd? = null
@@ -56,6 +60,20 @@ object AdManager : LifecycleObserver {
     var contTypeIp = ""
     var listTypeIp = ""
     var endTypeIp = ""
+
+    var ad_O: TbaAdBean = TbaAdBean(adType = "open", adWhere = "open", adId = "")
+    var ad_H: TbaAdBean = TbaAdBean(adType = "homenv", adWhere = "native", adId = "")
+    var ad_E: TbaAdBean = TbaAdBean(adType = "resultnv", adWhere = "native", adId = "")
+    var ad_C: TbaAdBean = TbaAdBean(adType = "cnctiv", adWhere = "Interstitial", adId = "")
+    var ad_B_S: TbaAdBean = TbaAdBean(adType = "servivback", adWhere = "Interstitial", adId = "")
+    var ad_B_C: TbaAdBean = TbaAdBean(adType = "resivback", adWhere = "Interstitial", adId = "")
+
+    var ad_O_Dis: TbaAdBean = TbaAdBean(adType = "open", adWhere = "open", adId = "")
+    var ad_H_Dis: TbaAdBean = TbaAdBean(adType = "homenv", adWhere = "native", adId = "")
+    var ad_E_Dis: TbaAdBean = TbaAdBean(adType = "resultnv", adWhere = "native", adId = "")
+    var ad_B_S_Dis: TbaAdBean =
+        TbaAdBean(adType = "servivback", adWhere = "Interstitial", adId = "")
+    var ad_B_C_Dis: TbaAdBean = TbaAdBean(adType = "resivback", adWhere = "Interstitial", adId = "")
     fun init(context: Context) {
         MobileAds.initialize(context)
     }
@@ -195,10 +213,18 @@ object AdManager : LifecycleObserver {
             AdType.INTERSTITIAL_SERVICE_DIS -> loadInterstitialAd(context, adUnitId!!, adType)
             AdType.INTERSTITIAL_RESULT_DIS -> loadInterstitialAd(context, adUnitId!!, adType)
         }
+        PutDataUtils.abcAsk(getTbaBean(adType))
     }
 
 
     private fun loadAppOpenAd(context: Context, adUnitId: String, adType: AdType) {
+        if (App.vvState) {
+            ad_O =
+                PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType)).apply { adId = adUnitId }
+        } else {
+            ad_O_Dis =
+                PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType)).apply { adId = adUnitId }
+        }
 
         AppOpenAd.load(
             context, adUnitId, AdRequest.Builder().build(),
@@ -209,29 +235,77 @@ object AdManager : LifecycleObserver {
                     lastLoadTime[adType] = SystemClock.elapsedRealtime()
                     logAlien("${adType}-广告，加载成功")
                     nowLoadState[adType] = false
+                    ad.setOnPaidEventListener { adValue ->
+                        Log.e("TAG", "App open ads start reporting")
+                        adValue.let {
+                            PutDataUtils.emitAdData(
+                                adValue,
+                                ad.responseInfo, getTbaBean(adType)
+                            )
+                        }
+                        PutDataUtils.toBuriedPointAdValueTTD(adValue, ad.responseInfo)
+                    }
+                    PutDataUtils.abcGett(getTbaBean(adType))
                 }
 
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     // 处理加载失败
                     logAlien("${adType}-广告，加载失败=${adError.message}")
                     nowLoadState[adType] = false
+                    PutDataUtils.abcAskdis(getTbaBean(adType), adError.message)
                 }
             }
         )
     }
 
     private fun loadNativeAd(context: Context, adUnitId: String, adType: AdType) {
+        when (adType) {
+            AdType.NATIVE_HOME -> {
+                ad_H = PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType))
+                    .apply { adId = adUnitId }
+            }
+
+            AdType.NATIVE_HOME_DIS -> {
+                ad_H_Dis = PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType))
+                    .apply { adId = adUnitId }
+
+            }
+
+            AdType.NATIVE_RESULT -> {
+                ad_E = PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType))
+                    .apply { adId = adUnitId }
+            }
+
+            AdType.NATIVE_RESULT_DIS -> {
+                ad_E_Dis =
+                    PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType))
+                        .apply { adId = adUnitId }
+            }
+
+            else -> {}
+        }
         AdLoader.Builder(context, adUnitId)
             .forNativeAd { ad ->
                 logAlien("${adType}-广告，加载成功")
                 setAd(adType, ad)
                 nowLoadState[adType] = false
                 lastLoadTime[adType] = SystemClock.elapsedRealtime()
+                ad.setOnPaidEventListener { adValue ->
+                    Log.e("TAG", "App ${adType} ads start reporting")
+                    adValue.let {
+                        ad.responseInfo?.let { it1 ->
+                            PutDataUtils.emitAdData(adValue, it1, getTbaBean(adType))
+                        }
+                    }
+                    ad.responseInfo?.let { PutDataUtils.toBuriedPointAdValueTTD(adValue, it) }
+                }
+                PutDataUtils.abcGett(getTbaBean(adType))
             }
             .withAdListener(object : AdListener() {
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     logAlien("${adType}-广告，加载失败=${adError.message}")
                     nowLoadState[adType] = false
+                    PutDataUtils.abcAskdis(getTbaBean(adType), adError.message)
                 }
             })
             .build()
@@ -239,6 +313,38 @@ object AdManager : LifecycleObserver {
     }
 
     private fun loadInterstitialAd(context: Context, adUnitId: String, adType: AdType) {
+        when (adType) {
+            AdType.INTERSTITIAL_CONNECT -> {
+                ad_C = PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType))
+                    .apply { adId = adUnitId }
+            }
+
+            AdType.INTERSTITIAL_SERVICE -> {
+                ad_B_S = PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType))
+                    .apply { adId = adUnitId }
+
+            }
+
+            AdType.INTERSTITIAL_RESULT -> {
+                ad_B_C = PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType))
+                    .apply { adId = adUnitId }
+            }
+
+            AdType.INTERSTITIAL_SERVICE_DIS -> {
+                ad_B_S_Dis =
+                    PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType))
+                        .apply { adId = adUnitId }
+
+            }
+
+            AdType.INTERSTITIAL_RESULT_DIS -> {
+                ad_B_C_Dis =
+                    PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType))
+                        .apply { adId = adUnitId }
+            }
+
+            else -> {}
+        }
         InterstitialAd.load(
             context,
             adUnitId,
@@ -249,14 +355,24 @@ object AdManager : LifecycleObserver {
                     lastLoadTime[adType] = SystemClock.elapsedRealtime()
                     logAlien("${adType}-广告，加载成功")
                     nowLoadState[adType] = false
+                    ad.setOnPaidEventListener { adValue ->
+                        Log.e("TAG", "${adType} open ads start reporting")
+                        adValue.let {
+                            PutDataUtils.emitAdData(
+                                adValue,
+                                ad.responseInfo, getTbaBean(adType)
+                            )
+                        }
+                        PutDataUtils.toBuriedPointAdValueTTD(adValue, ad.responseInfo)
+                    }
+                    PutDataUtils.abcGett(getTbaBean(adType))
                 }
 
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     // 处理加载失败
                     logAlien("${adType}-广告，加载失败=${adError.message}")
                     nowLoadState[adType] = false
-
-
+                    PutDataUtils.abcAskdis(getTbaBean(adType), adError.message)
                 }
             })
     }
@@ -296,6 +412,17 @@ object AdManager : LifecycleObserver {
 
                         }
                     }
+                    when (adType) {
+                        AdType.OPEN -> {
+                            ad_O = PutDataUtils.afterLoadLinkSettingsTTD(ad_O)
+                        }
+
+                        AdType.OPEN_DIS -> {
+                            ad_O_Dis = PutDataUtils.afterLoadLinkSettingsTTD(ad_O_Dis)
+                        }
+
+                        else -> {}
+                    }
                     show(activity)
                 }
             }
@@ -321,10 +448,51 @@ object AdManager : LifecycleObserver {
                             clearAd(adType)
                         }
                     }
+                    when (adType) {
+                        AdType.INTERSTITIAL_CONNECT -> {
+                            ad_C = PutDataUtils.afterLoadLinkSettingsTTD(getTbaBean(adType))
+                        }
+
+                        AdType.INTERSTITIAL_SERVICE -> {
+                            ad_B_S = PutDataUtils.afterLoadLinkSettingsTTD(getTbaBean(adType))
+                        }
+
+                        AdType.INTERSTITIAL_RESULT -> {
+                            ad_B_C = PutDataUtils.afterLoadLinkSettingsTTD(getTbaBean(adType))
+                        }
+
+                        AdType.INTERSTITIAL_SERVICE_DIS -> {
+                            ad_B_S_Dis = PutDataUtils.afterLoadLinkSettingsTTD(getTbaBean(adType))
+                        }
+
+                        AdType.INTERSTITIAL_RESULT_DIS -> {
+                            ad_B_C_Dis = PutDataUtils.afterLoadLinkSettingsTTD(getTbaBean(adType))
+                        }
+
+                        else -> {}
+                    }
                     show(activity)
                 }
             }
         }
+        PutDataUtils.abcView(getTbaBean(adType))
+    }
+
+    fun getTbaBean(adType: AdType): TbaAdBean {
+        return when (adType) {
+            AdType.OPEN -> ad_O
+            AdType.NATIVE_HOME -> ad_H
+            AdType.NATIVE_RESULT -> ad_E
+            AdType.INTERSTITIAL_CONNECT -> ad_C
+            AdType.INTERSTITIAL_SERVICE -> ad_B_S
+            AdType.INTERSTITIAL_RESULT -> ad_B_C
+            AdType.OPEN_DIS -> ad_O_Dis
+            AdType.NATIVE_HOME_DIS -> ad_H_Dis
+            AdType.NATIVE_RESULT_DIS -> ad_E_Dis
+            AdType.INTERSTITIAL_SERVICE_DIS -> ad_B_S_Dis
+            AdType.INTERSTITIAL_RESULT_DIS -> ad_B_C_Dis
+        }
+
     }
 
     private fun clearAd(adType: AdType) {
@@ -378,6 +546,17 @@ object AdManager : LifecycleObserver {
                     activity.binding.imgOcAd.isVisible = false
                     activity.binding.adLayoutAdmob.isVisible = true
                     logAlien("${adType}-广告，展示")
+                    when (adType) {
+                        AdType.NATIVE_HOME -> {
+                            ad_H = PutDataUtils.afterLoadLinkSettingsTTD(ad_H)
+                        }
+
+                        AdType.NATIVE_HOME_DIS -> {
+                            ad_H_Dis = PutDataUtils.afterLoadLinkSettingsTTD(ad_H_Dis)
+                        }
+
+                        else -> {}
+                    }
                     clearAd(adType)
                     onAdClosed()
                 }
@@ -413,6 +592,17 @@ object AdManager : LifecycleObserver {
                     activity.binding.imgOcAd.isVisible = false
                     activity.binding.adLayoutAdmob.isVisible = true
                     logAlien("${adType}-广告，展示")
+                    when (adType) {
+                        AdType.NATIVE_RESULT -> {
+                            ad_E = PutDataUtils.afterLoadLinkSettingsTTD(ad_E)
+                        }
+
+                        AdType.NATIVE_RESULT_DIS -> {
+                            ad_E_Dis = PutDataUtils.afterLoadLinkSettingsTTD(ad_E_Dis)
+                        }
+
+                        else -> {}
+                    }
                     clearAd(adType)
                     onAdClosed()
                 }

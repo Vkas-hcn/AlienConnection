@@ -40,6 +40,7 @@ import com.beetle.chili.triggers.connection.imsued.SpeedImp
 import com.beetle.chili.triggers.connection.uskde.DataUtils
 import com.beetle.chili.triggers.connection.uskde.DataUtils.shareText
 import com.beetle.chili.triggers.connection.uskde.NetGet
+import com.beetle.chili.triggers.connection.wjfos.PutDataUtils
 import com.github.shadowsocks.Core
 import com.github.shadowsocks.aidl.IShadowsocksService
 import com.github.shadowsocks.aidl.ShadowsocksConnection
@@ -310,6 +311,17 @@ class MainActivity : AppCompatActivity(),
             if (nowClickState == 0) {
                 DataUtils.addHisVpn()
                 Core.startService()
+                PutDataUtils.postPointData("c_real_connect", "type", "ss")
+                delay(3000)
+                if (!App.vvState) {
+                    PutDataUtils.postPointData(
+                        "c_dissu_connect",
+                        "type",
+                        "ss",
+                        "IP",
+                        DataUtils.getNowVpn().host
+                    )
+                }
             }
         }
     }
@@ -508,6 +520,9 @@ class MainActivity : AppCompatActivity(),
                 showConnectAd()
                 AdManager.loadAd(this, getEndAdType())
                 AdManager.loadAd(this, getResultAdType())
+                if (nowClickState != 1) {
+                    PutDataUtils.postPointData("c_su_connet", "type", "ss")
+                }
             }
 
             BaseService.State.Connecting -> {
