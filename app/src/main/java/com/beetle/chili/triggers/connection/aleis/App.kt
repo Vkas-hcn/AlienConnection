@@ -96,7 +96,7 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
 
         if (activity is AdActivity) {
             adActivity = activity
-        }else{
+        } else {
             paPageName = activity.javaClass.simpleName
         }
         if (isFlashAppBackGround) {
@@ -109,10 +109,11 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
 
 
     override fun onActivityResumed(activity: Activity) {
-
+        Adjust.onResume()
     }
 
     override fun onActivityPaused(activity: Activity) {
+        Adjust.onPause()
     }
 
     override fun onActivityStopped(activity: Activity) {
