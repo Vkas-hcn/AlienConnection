@@ -49,7 +49,7 @@ object PutDataUtils {
             //client_ts
             put("miami", System.currentTimeMillis())
             //gaid
-            put("czar", (runCatching { AdvertisingIdClient.getAdvertisingIdInfo(App.appComponent).id }.getOrNull() ?: ""))
+            put("czar", DataUtils.advertising_google)
             //system_language
             put("ct", "${Locale.getDefault().language}_${Locale.getDefault().country}")
             //os_version

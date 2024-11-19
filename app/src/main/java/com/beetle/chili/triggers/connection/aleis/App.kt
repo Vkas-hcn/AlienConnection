@@ -20,9 +20,13 @@ import com.beetle.chili.triggers.connection.uasndje.StartActivity
 import com.beetle.chili.triggers.connection.uskde.DataUtils
 import com.github.shadowsocks.Core
 import com.google.android.gms.ads.AdActivity
+import com.google.android.gms.ads.identifier.AdvertisingIdClient
 import com.google.firebase.FirebaseApp
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.ktx.initialize
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 class App : Application(), Application.ActivityLifecycleCallbacks {
@@ -58,6 +62,14 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
             }
             GetMobData.getBlackList(this)
             initAdJust(this)
+            CoroutineScope(Dispatchers.IO).launch {
+                val adId = runCatching {
+                    AdvertisingIdClient.getAdvertisingIdInfo(appComponent)?.id
+                }.getOrNull() ?: ""
+                Log.d("AdId", "Google Advertising ID: $adId")
+                DataUtils.advertising_google = adId
+            }
+
         }
     }
 

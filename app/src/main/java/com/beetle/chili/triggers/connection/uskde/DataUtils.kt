@@ -107,6 +107,12 @@ object DataUtils {
         set(value) {
             sharedPreferences.edit().putString("llIp", value).apply()
         }
+
+    var advertising_google: String
+        get() = sharedPreferences.getString("advertising_google", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("advertising_google", value).apply()
+        }
     fun getCountryIcon(name: String): Int {
         return when (name.replace(" ", "").lowercase()) {
             "australia" -> R.drawable.australia
