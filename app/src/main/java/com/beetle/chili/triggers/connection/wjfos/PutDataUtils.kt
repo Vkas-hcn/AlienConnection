@@ -49,11 +49,7 @@ object PutDataUtils {
             //client_ts
             put("miami", System.currentTimeMillis())
             //gaid
-            put(
-                "czar",
-                runCatching { AdvertisingIdClient.getAdvertisingIdInfo(App.appComponent).id }.getOrNull()
-                    ?: ""
-            )
+            put("czar", (runCatching { AdvertisingIdClient.getAdvertisingIdInfo(App.appComponent).id }.getOrNull() ?: ""))
             //system_language
             put("ct", "${Locale.getDefault().language}_${Locale.getDefault().country}")
             //os_version
@@ -445,7 +441,7 @@ object PutDataUtils {
         postPointData(
             "abc_ask",
             "inform",
-            adBean.adWhere,
+            adBean.adType,
             "page",
             App.paPageName,
             "ID",
@@ -457,7 +453,7 @@ object PutDataUtils {
             postPointData(
                 "abc_connect_ask",
                 "inform",
-                adBean.adWhere,
+                adBean.adType,
                 "page",
                 App.paPageName,
                 "ID",
@@ -472,7 +468,7 @@ object PutDataUtils {
         postPointData(
             "abc_gett",
             "inform",
-            adBean.adWhere,
+            adBean.adType,
             "page",
             App.paPageName,
             "ID",
@@ -486,7 +482,7 @@ object PutDataUtils {
         postPointData(
             "abc_askdis",
             "inform",
-            adBean.adWhere,
+            adBean.adType,
             "ID",
             "${adBean.adId}+${App.vvState}",
             "IP",
@@ -500,7 +496,7 @@ object PutDataUtils {
         postPointData(
             "abc_view",
             "inform",
-            adBean.adWhere,
+            adBean.adType,
             "page",
             App.paPageName,
             "ID",
