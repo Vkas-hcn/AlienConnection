@@ -51,15 +51,16 @@ object PutDataUtils {
             //gaid
             put(
                 "czar",
-                runCatching { AdvertisingIdClient.getAdvertisingIdInfo(App.thisApplication).id }.getOrElse { "" })
-
+                runCatching { AdvertisingIdClient.getAdvertisingIdInfo(App.appComponent).id }.getOrNull()
+                    ?: ""
+            )
             //system_language
             put("ct", "${Locale.getDefault().language}_${Locale.getDefault().country}")
             //os_version
             put("range", "1")
             //android_id
             put("forborne", "1")
-            put("cowhide", "mmc")
+            put("cowhide", "111")
             //distinct_id
             put("gannet", DataUtils.BID)
             put("fulton", "111")
@@ -176,13 +177,13 @@ object PutDataUtils {
             //ad_code_id
             put("glycerin", adBean.adId)
             //ad_pos_id
-            put("regard", adBean.adWhere)
+            put("regard", adBean.adType)
             //ad_rit_id
             put("stucco", "")
             //ad_sense
             put("impede", "")
             //ad_format
-            put("quod", adBean.adType)
+            put("quod", adBean.adWhere)
             //precision_type
             put("casebook", getPrecisionType(adValue.precisionType))
             //ad_load_ip
