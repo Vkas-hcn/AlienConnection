@@ -27,13 +27,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import com.beetle.chili.triggers.connection.R
+import com.beetle.chili.triggers.connection.adkfieo.GetMobData.parseJsonToAdConfig
 import com.beetle.chili.triggers.connection.uskde.DataUtils
 import com.beetle.chili.triggers.connection.wjfos.PutDataUtils
 import com.beetle.chili.triggers.connection.wjfos.TbaAdBean
+import java.util.Calendar
 
 object AdManager : LifecycleObserver {
     private val CACHE_DURATION = TimeUnit.HOURS.toMillis(1)
     private val CACHE_DURATION_TEST = TimeUnit.MINUTES.toMillis(1)
+    var isFirstLoad = false
 
     // 各种广告类型的缓存实例
     private var appOpenAd: AppOpenAd? = null
@@ -75,6 +78,7 @@ object AdManager : LifecycleObserver {
         TbaAdBean(adType = "servivback", adWhere = "Interstitial", adId = "")
     var ad_B_C_Dis: TbaAdBean = TbaAdBean(adType = "resivback", adWhere = "Interstitial", adId = "")
     fun init(context: Context) {
+        resetCountsIfNeeded()
         MobileAds.initialize(context)
     }
 
@@ -130,8 +134,19 @@ object AdManager : LifecycleObserver {
         return if (App.vvState) AdSource.SRE else AdSource.LCL
     }
 
-    fun loadAd(context: Context, adType: AdType) {
+    fun getAdMinType(adType: AdType): Boolean {
+        return adType == AdType.INTERSTITIAL_RESULT || adType == AdType.INTERSTITIAL_RESULT_DIS || adType == AdType.NATIVE_HOME || adType == AdType.NATIVE_HOME_DIS || adType == AdType.INTERSTITIAL_CONNECT
+    }
 
+    fun getAdmobIdList(adList: String): Array<String> {
+        return adList.split("&").toTypedArray()
+    }
+
+    fun loadAd(context: Context, adType: AdType) {
+        if (caoShow()) {
+            logAlien("广告超限不在加载")
+            return
+        }
         if (nowLoadState[adType] == true) {
             logAlien("$adType 广告加载中")
             return
@@ -139,6 +154,10 @@ object AdManager : LifecycleObserver {
         val blackData = GetMobData.getAdBlackData()
         if (blackData && adType != AdType.OPEN && adType != AdType.OPEN_DIS && adType != AdType.NATIVE_RESULT && adType != AdType.NATIVE_RESULT_DIS) {
             logAlien("黑名单屏蔽$adType 广告，不在加载 ")
+            return
+        }
+        if (Postadmin().getAdminPingData() && getAdMinType(adType)) {
+            logAlien("Admin屏蔽$adType 广告，不在加载 ")
             return
         }
         if (App.vvState && (getLoadIp(adType).isNotEmpty()) && getLoadIp(adType) != DataUtils.getNowVpn().host) {
@@ -175,7 +194,6 @@ object AdManager : LifecycleObserver {
             AdType.INTERSTITIAL_RESULT_DIS -> getAdUnitId(adSource, "resivback")
         }
         nowLoadState[adType] = true
-        logAlien("${adType}-广告，开始加载-id=${adUnitId}")
         when (adType) {
             AdType.OPEN -> {
                 openTypeIp = DataUtils.getNowVpn().host
@@ -217,7 +235,24 @@ object AdManager : LifecycleObserver {
     }
 
 
-    private fun loadAppOpenAd(context: Context, adUnitId: String, adType: AdType) {
+    private fun loadAppOpenAd(
+        context: Context,
+        adUnitIdList: String,
+        adType: AdType,
+        currentIndex: Int = 0
+    ) {
+        val adIds = getAdmobIdList(adUnitIdList)
+        if (currentIndex >= adIds.size) {
+            if (!isFirstLoad) {
+                isFirstLoad = true
+                loadAppOpenAd(context, adUnitIdList, adType, 0)
+                return
+            }
+            nowLoadState[adType] = false
+            logAlien("${adType}-所有广告 ID 加载失败")
+            return
+        }
+        val adUnitId = adIds[currentIndex]
         if (App.vvState) {
             ad_O =
                 PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType)).apply { adId = adUnitId }
@@ -225,7 +260,7 @@ object AdManager : LifecycleObserver {
             ad_O_Dis =
                 PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType)).apply { adId = adUnitId }
         }
-
+        logAlien("${adType}-广告，开始加载-id=${adUnitId}")
         AppOpenAd.load(
             context, adUnitId, AdRequest.Builder().build(),
             AppOpenAd.APP_OPEN_AD_ORIENTATION_PORTRAIT,
@@ -253,12 +288,25 @@ object AdManager : LifecycleObserver {
                     logAlien("${adType}-广告，加载失败=${adError.message}")
                     nowLoadState[adType] = false
                     PutDataUtils.abcAskdis(getTbaBean(adType), adError.message)
+                    loadAppOpenAd(context, adUnitIdList, adType, currentIndex + 1)
                 }
             }
         )
     }
 
-    private fun loadNativeAd(context: Context, adUnitId: String, adType: AdType) {
+    private fun loadNativeAd(
+        context: Context,
+        adUnitIdList: String,
+        adType: AdType,
+        currentIndex: Int = 0
+    ) {
+        val adIds = getAdmobIdList(adUnitIdList)
+        if (adIds.isEmpty() || currentIndex >= adIds.size) {
+            nowLoadState[adType] = false
+            logAlien("${adType}-所有广告 ID 加载失败")
+            return
+        }
+        val adUnitId = adIds[currentIndex]
         when (adType) {
             AdType.NATIVE_HOME -> {
                 ad_H = PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType))
@@ -284,6 +332,7 @@ object AdManager : LifecycleObserver {
 
             else -> {}
         }
+        logAlien("${adType}-广告，开始加载-id=${adUnitId}")
         AdLoader.Builder(context, adUnitId)
             .forNativeAd { ad ->
                 logAlien("${adType}-广告，加载成功")
@@ -306,13 +355,31 @@ object AdManager : LifecycleObserver {
                     logAlien("${adType}-广告，加载失败=${adError.message}")
                     nowLoadState[adType] = false
                     PutDataUtils.abcAskdis(getTbaBean(adType), adError.message)
+                    loadNativeAd(context, adUnitIdList, adType, currentIndex + 1)
+                }
+
+                override fun onAdClicked() {
+                    super.onAdClicked()
+                    incrementClickCount()
                 }
             })
             .build()
             .loadAd(AdRequest.Builder().build())
     }
 
-    private fun loadInterstitialAd(context: Context, adUnitId: String, adType: AdType) {
+    private fun loadInterstitialAd(
+        context: Context,
+        adUnitIdList: String,
+        adType: AdType,
+        currentIndex: Int = 0
+    ) {
+        val adIds = getAdmobIdList(adUnitIdList)
+        if (adIds.isEmpty() || currentIndex >= adIds.size) {
+            nowLoadState[adType] = false
+            logAlien("${adType}-所有广告 ID 加载失败")
+            return
+        }
+        val adUnitId = adIds[currentIndex]
         when (adType) {
             AdType.INTERSTITIAL_CONNECT -> {
                 ad_C = PutDataUtils.beforeLoadLinkSettingsTTD(getTbaBean(adType))
@@ -345,6 +412,7 @@ object AdManager : LifecycleObserver {
 
             else -> {}
         }
+        logAlien("${adType}-广告，开始加载-id=${adUnitId}")
         InterstitialAd.load(
             context,
             adUnitId,
@@ -373,6 +441,7 @@ object AdManager : LifecycleObserver {
                     logAlien("${adType}-广告，加载失败=${adError.message}")
                     nowLoadState[adType] = false
                     PutDataUtils.abcAskdis(getTbaBean(adType), adError.message)
+                    loadInterstitialAd(context, adUnitIdList, adType, currentIndex + 1)
                 }
             })
     }
@@ -411,6 +480,11 @@ object AdManager : LifecycleObserver {
                             logAlien("${adType}-广告，展示")
 
                         }
+
+                        override fun onAdClicked() {
+                            super.onAdClicked()
+                            incrementClickCount()
+                        }
                     }
                     when (adType) {
                         AdType.OPEN -> {
@@ -423,6 +497,7 @@ object AdManager : LifecycleObserver {
 
                         else -> {}
                     }
+                    incrementSHowCount()
                     show(activity)
                 }
             }
@@ -446,6 +521,11 @@ object AdManager : LifecycleObserver {
                             super.onAdShowedFullScreenContent()
                             logAlien("${adType}-广告，展示")
                             clearAd(adType)
+                        }
+
+                        override fun onAdClicked() {
+                            super.onAdClicked()
+                            incrementClickCount()
                         }
                     }
                     when (adType) {
@@ -471,6 +551,7 @@ object AdManager : LifecycleObserver {
 
                         else -> {}
                     }
+                    incrementSHowCount()
                     show(activity)
                 }
             }
@@ -546,6 +627,7 @@ object AdManager : LifecycleObserver {
                     activity.binding.imgOcAd.isVisible = false
                     activity.binding.adLayoutAdmob.isVisible = true
                     logAlien("${adType}-广告，展示")
+                    incrementSHowCount()
                     when (adType) {
                         AdType.NATIVE_HOME -> {
                             ad_H = PutDataUtils.afterLoadLinkSettingsTTD(ad_H)
@@ -591,6 +673,7 @@ object AdManager : LifecycleObserver {
                     }
                     activity.binding.imgOcAd.isVisible = false
                     activity.binding.adLayoutAdmob.isVisible = true
+                    incrementSHowCount()
                     logAlien("${adType}-广告，展示")
                     when (adType) {
                         AdType.NATIVE_RESULT -> {
@@ -727,6 +810,51 @@ object AdManager : LifecycleObserver {
 
             else -> {}
         }
+    }
+
+    fun caoShow(): Boolean {
+        resetCountsIfNeeded()
+        val adOpenNum = parseJsonToAdConfig().sbjiortb ?: 36
+        val adClickNum = parseJsonToAdConfig().crhpjkr ?: 8
+        val currentOpenCount = DataUtils.ad_date_show ?: 0
+        val currentClickCount = DataUtils.ad_date_click ?: 0
+        if (currentOpenCount >= adOpenNum && !DataUtils.ad_date_up) {
+            PutDataUtils.postPointData("abc_limit","type","show")
+            DataUtils.ad_date_up = true
+        }
+        if (currentClickCount >= adClickNum && !DataUtils.ad_date_up) {
+            PutDataUtils.postPointData("abc_limit","type","click")
+            DataUtils.ad_date_up = true
+        }
+        return currentOpenCount >= adOpenNum || currentClickCount >= adClickNum
+    }
+
+    fun caoState(adType: AdType): Boolean {
+        return caoShow() && getAd(adType) == null
+    }
+
+    private fun incrementSHowCount() {
+        DataUtils.ad_date_show += 1
+    }
+
+    private fun incrementClickCount() {
+        DataUtils.ad_date_click += 1
+    }
+
+    private fun resetCountsIfNeeded() {
+        val currentDate = Calendar.getInstance().timeInMillis
+        if (!isSameDay(DataUtils.ad_date_app, currentDate)) {
+            DataUtils.ad_date_app = currentDate
+            DataUtils.ad_date_show = 0
+            DataUtils.ad_date_click = 0
+        }
+    }
+
+    private fun isSameDay(time1: Long, time2: Long): Boolean {
+        val calendar1 = Calendar.getInstance().apply { timeInMillis = time1 }
+        val calendar2 = Calendar.getInstance().apply { timeInMillis = time2 }
+        return calendar1.get(Calendar.YEAR) == calendar2.get(Calendar.YEAR) &&
+                calendar1.get(Calendar.DAY_OF_YEAR) == calendar2.get(Calendar.DAY_OF_YEAR)
     }
 }
 

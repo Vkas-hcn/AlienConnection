@@ -18,10 +18,12 @@ import com.beetle.chili.triggers.connection.R
 import com.beetle.chili.triggers.connection.adkfieo.AdManager
 import com.beetle.chili.triggers.connection.adkfieo.AdType
 import com.beetle.chili.triggers.connection.adkfieo.GetMobData
+import com.beetle.chili.triggers.connection.adkfieo.Postadmin
 import com.beetle.chili.triggers.connection.databinding.VvEeBinding
 import com.beetle.chili.triggers.connection.databinding.VvSsBinding
 import com.beetle.chili.triggers.connection.uskde.DataUtils
 import com.beetle.chili.triggers.connection.wekgisa.LoadingDialog
+import com.beetle.chili.triggers.connection.wjfos.PutDataUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
@@ -53,6 +55,7 @@ class EndActivity : AppCompatActivity() {
         showVpnState()
         clickMainBtn()
         showResultAd()
+        PutDataUtils.postPointData("p_result_view","type",PutDataUtils.getVpnConnectName())
     }
 
     private fun clickMainBtn() {
@@ -63,15 +66,18 @@ class EndActivity : AppCompatActivity() {
             nextFUn()
         }
         binding.tvFast.setOnClickListener {
+            PutDataUtils.postPointData("p_disresult_fastnode")
             navigateToHome("fast")
         }
 
         binding.tvRe.setOnClickListener {
+            PutDataUtils.postPointData("p_disresult_reconnect")
             navigateToHome("flushed")
         }
     }
 
     private fun nextFUn() {
+        PutDataUtils.postPointData("p_result_back","type",PutDataUtils.getVpnConnectName())
         showEndIntAd {
             finish()
             loadingDialog.hideLoading()
@@ -127,7 +133,10 @@ class EndActivity : AppCompatActivity() {
         jobEnd?.cancel()
         jobEnd = null
         jobEnd = lifecycleScope.launch {
-            if (GetMobData.getAdBlackData()) {
+            if (GetMobData.getAdBlackData() || Postadmin().getAdminPingData() || AdManager.caoState(
+                    GetMobData.getEndAdType()
+                )
+            ) {
                 jobEnd?.cancel()
                 jobEnd = null
                 nextFun()

@@ -20,6 +20,7 @@ import android.util.Base64
 import android.webkit.WebSettings
 import com.beetle.chili.triggers.connection.BuildConfig
 import com.beetle.chili.triggers.connection.blkfh.Data
+import com.beetle.chili.triggers.connection.wjfos.PutDataUtils
 import kotlinx.coroutines.delay
 import org.json.JSONObject
 import java.io.BufferedWriter
@@ -90,10 +91,11 @@ object NetGet {
 
 
     fun inspectConnect(activity: Activity): Boolean {
-        if(BuildConfig.DEBUG){
+        if (BuildConfig.DEBUG) {
             return false
         }
         if (inspectNetwork().not()) {
+            PutDataUtils.postPointData("u_no_network")
             AlertDialog.Builder(activity).create().apply {
                 setCancelable(false)
                 setOnKeyListener { dialog, keyCode, event -> true }
@@ -105,6 +107,8 @@ object NetGet {
         }
         val country = DataUtils.htp_country.ifEmpty { Locale.getDefault().country }
         if (arrayOf("CN", "HK", "MO", "IR").any { country.contains(it, true) }) {
+            PutDataUtils.postPointData("u_area_limit", "cy", DataUtils.htp_country)
+
             AlertDialog.Builder(activity).create().apply {
                 setCancelable(false)
                 setOnKeyListener { dialog, keyCode, event -> true }
@@ -238,8 +242,9 @@ object NetGet {
         val decodedBytes = Base64.decode(swappedResponse, Base64.DEFAULT)
         return String(decodedBytes, Charsets.UTF_8)
     }
+
     fun postPutData(body: Any, callback: Callback) {
-        Thread {
+        CoroutineScope(Dispatchers.IO).launch {
             var connection: HttpURLConnection? = null
             try {
                 val urlConnection = URL(DataUtils.tba_url).openConnection() as HttpURLConnection
@@ -269,7 +274,6 @@ object NetGet {
             } finally {
                 connection?.disconnect()
             }
-        }.start()
+        }
     }
-
 }

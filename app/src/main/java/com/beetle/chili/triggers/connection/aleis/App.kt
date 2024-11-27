@@ -41,6 +41,7 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
         var isHotStart: Boolean = false
         var vvState = false
         var paPageName = ""
+        var appTimeStart = 0L
     }
 
     override fun onCreate() {
@@ -55,6 +56,7 @@ class App : Application(), Application.ActivityLifecycleCallbacks {
             AdManager.init(this)
             Firebase.initialize(this)
             FirebaseApp.initializeApp(this)
+            appTimeStart = System.currentTimeMillis()
             DataUtils.BID.let {
                 if (it.isBlank()) {
                     DataUtils.BID = UUID.randomUUID().toString()

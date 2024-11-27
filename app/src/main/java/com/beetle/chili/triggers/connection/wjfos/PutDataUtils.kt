@@ -192,7 +192,7 @@ object PutDataUtils {
         }.toString()
     }
 
-    private fun getAppVersion(): String {
+     fun getAppVersion(): String {
         try {
             val packageInfo = App.appComponent.packageManager.getPackageInfo(
                 App.appComponent.packageName,
@@ -272,6 +272,9 @@ object PutDataUtils {
 
 
     fun emitInstallData(context: Context, referrerDetails: ReferrerDetails) {
+        if (DataUtils.installState == "1") {
+            return
+        }
         val json = install(context, referrerDetails)
         Log.e("TBA", "json-install--->${json}")
         try {
@@ -505,5 +508,11 @@ object PutDataUtils {
             adBean.ttd_load_ip
         )
     }
-
+    fun getVpnConnectName(): String {
+        return if(App.vvState){
+            "connect"
+        }else{
+            "disconnect"
+        }
+    }
 }

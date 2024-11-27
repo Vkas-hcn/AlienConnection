@@ -21,6 +21,7 @@ import com.beetle.chili.triggers.connection.databinding.VvEeBinding
 import com.beetle.chili.triggers.connection.databinding.VvHisBinding
 import com.beetle.chili.triggers.connection.databinding.VvSsBinding
 import com.beetle.chili.triggers.connection.uskde.DataUtils
+import com.beetle.chili.triggers.connection.wjfos.PutDataUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -47,6 +48,7 @@ class HisActivity : AppCompatActivity() {
         setResult(Activity.RESULT_OK, data)
         clickMainBtn()
         initAdapter()
+        PutDataUtils.postPointData("p_history_view")
     }
 
     private fun clickMainBtn() {

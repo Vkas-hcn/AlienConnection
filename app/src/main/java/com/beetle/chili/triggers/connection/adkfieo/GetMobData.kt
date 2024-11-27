@@ -10,6 +10,8 @@ import com.beetle.chili.triggers.connection.aleis.App
 import com.beetle.chili.triggers.connection.blkfh.AlienBean
 import com.beetle.chili.triggers.connection.uskde.DataUtils
 import com.beetle.chili.triggers.connection.uskde.NetGet
+import com.beetle.chili.triggers.connection.wjfos.PutDataUtils
+import com.beetle.chili.triggers.connection.wjfos.PutDataUtils.getAppVersion
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -33,11 +35,11 @@ object GetMobData {
         }
     }
 
-     fun base64Decode(base64Str: String): String {
+    fun base64Decode(base64Str: String): String {
         return String(Base64.decode(base64Str, Base64.DEFAULT))
     }
 
-     fun getLjData(): AdLjBean {
+    fun getLjData(): AdLjBean {
         return runCatching {
             if (DataUtils.firebaseGz.isNotEmpty()) {
                 Gson().fromJson(DataUtils.firebaseGz, AdLjBean::class.java)
@@ -65,7 +67,20 @@ object GetMobData {
                 DataUtils.bbbbbbDD != "gummy"
             }
         }
+        if (!DataUtils.black_state && !adBlack) {
+            PutDataUtils.postPointData("u_whitelist")
+            DataUtils.black_state = true
+        }
         return adBlack
+    }
+
+    fun getConnectTime(): Pair<Int, Int> {
+        val default = 10
+        val num = getLjData().Bose3 ?: ""
+        val parts = num.split("&")
+        val firstNumber = parts.getOrNull(0)?.toIntOrNull() ?: default
+        val secondNumber = parts.getOrNull(1)?.toIntOrNull() ?: default
+        return Pair(firstNumber, secondNumber)
     }
 
     private fun readAdJson(context: Context, fileName: String): String? {
@@ -86,6 +101,8 @@ object GetMobData {
         val jsonObject = JSONObject(jsonData)
 
         // 解析服务器数据
+        val sbjiortb = jsonObject.getInt("sbjiortb")
+        val crhpjkr = jsonObject.getInt("crhpjkr")
         val sreMap = jsonObject.getJSONObject("sre").toMap()
         val lclMap = jsonObject.getJSONObject("lcl").toMap()
 
@@ -96,9 +113,12 @@ object GetMobData {
         // 使用本地数据补充服务器数据
         val finalSreMap = mergeMaps(sreMap, localJsonObject.getJSONObject("sre").toMap())
         val finalLclMap = mergeMaps(lclMap, localJsonObject.getJSONObject("lcl").toMap())
-
-        // 返回最终的配置
-        return AdConfig(sre = finalSreMap, lcl = finalLclMap)
+        return AdConfig(
+            sbjiortb = sbjiortb,
+            crhpjkr = crhpjkr,
+            sre = finalSreMap,
+            lcl = finalLclMap
+        )
     }
 
     // 合并两个 Map，以优先使用 primaryMap 的值，secondaryMap 补充缺失的键值
@@ -124,21 +144,12 @@ object GetMobData {
         return mapOf(
             "eater" to "com.secure.shield.wave.protect.fast",
             "stalk" to "moiseyev",
-            "meridian" to getAppVersion().orEmpty(),
+            "meridian" to getAppVersion(),
             "gannet" to DataUtils.BID,
         )
     }
 
-    private fun getAppVersion(): String? {
-        return try {
-            val packageInfo =
-                App.appComponent.packageManager.getPackageInfo(App.appComponent.packageName, 0)
-            packageInfo.versionName
-        } catch (e: PackageManager.NameNotFoundException) {
-            e.printStackTrace()
-            null
-        }
-    }
+
 
     fun getBlackList(context: Context) {
         if (DataUtils.bbbbbbDD.isNotEmpty()) {
@@ -163,44 +174,47 @@ object GetMobData {
             })
     }
 
-    fun getOpenAdType():AdType {
-        return if (App.vvState){
+    fun getOpenAdType(): AdType {
+        return if (App.vvState) {
             AdType.OPEN
-        }else{
+        } else {
             AdType.OPEN_DIS
         }
     }
 
 
-    fun getHomeAdType():AdType {
-        return if (App.vvState){
+    fun getHomeAdType(): AdType {
+        return if (App.vvState) {
             AdType.NATIVE_HOME
-        }else{
+        } else {
             AdType.NATIVE_HOME_DIS
         }
     }
-    fun getResultAdType():AdType {
-        return if (App.vvState){
+
+    fun getResultAdType(): AdType {
+        return if (App.vvState) {
             AdType.NATIVE_RESULT
-        }else{
+        } else {
             AdType.NATIVE_RESULT_DIS
         }
     }
-    fun getConnectAdType():AdType {
+
+    fun getConnectAdType(): AdType {
         return AdType.INTERSTITIAL_CONNECT
     }
-    fun getServiceAdType():AdType {
-        return if (App.vvState){
+
+    fun getServiceAdType(): AdType {
+        return if (App.vvState) {
             AdType.INTERSTITIAL_SERVICE
-        }else{
+        } else {
             AdType.INTERSTITIAL_SERVICE_DIS
         }
     }
 
-    fun getEndAdType():AdType {
-        return if (App.vvState){
+    fun getEndAdType(): AdType {
+        return if (App.vvState) {
             AdType.INTERSTITIAL_RESULT
-        }else{
+        } else {
             AdType.INTERSTITIAL_RESULT_DIS
         }
     }

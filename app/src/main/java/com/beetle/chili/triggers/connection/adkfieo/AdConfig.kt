@@ -4,6 +4,8 @@ import androidx.annotation.Keep
 
 @Keep
 data class AdConfig(
+    val sbjiortb: Int,
+    val crhpjkr: Int,
     val sre: Map<String, String>,
     val lcl: Map<String, String>
 )
@@ -11,6 +13,7 @@ data class AdConfig(
 data class AdLjBean(
     val Bose1: String,
     val Bose2: String,
+    val Bose3: String,
 )
 // 枚举类定义广告类型
 enum class AdType {

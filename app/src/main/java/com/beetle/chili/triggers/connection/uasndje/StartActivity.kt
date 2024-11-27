@@ -23,6 +23,7 @@ import com.beetle.chili.triggers.connection.adkfieo.GetMobData.getConnectAdType
 import com.beetle.chili.triggers.connection.adkfieo.GetMobData.getHomeAdType
 import com.beetle.chili.triggers.connection.adkfieo.GetMobData.getOpenAdType
 import com.beetle.chili.triggers.connection.adkfieo.GetMobData.logAlien
+import com.beetle.chili.triggers.connection.adkfieo.Postadmin
 import com.beetle.chili.triggers.connection.aleis.App
 import com.beetle.chili.triggers.connection.databinding.VvSsBinding
 import com.beetle.chili.triggers.connection.uskde.DataUtils
@@ -59,8 +60,8 @@ class StartActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(binding.root)
         ouMSetAdSdk()
-        haveRefDataChangingBean(this)
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.IO) {
+            haveRefDataChangingBean(this@StartActivity)
             NetGet.inspectCountry()
             DataUtils.getOnlineVpnData(this@StartActivity)
             PutDataUtils.emitSessionData()
@@ -146,6 +147,10 @@ class StartActivity : AppCompatActivity() {
         jobOpenTdo = null
         jobOpenTdo = lifecycleScope.launch {
             delay(1000)
+            if (AdManager.caoShow()) {
+                onCountdownFinished()
+                return@launch
+            }
             try {
                 withTimeout(10000L) {
                     while (isActive) {
@@ -224,18 +229,24 @@ class StartActivity : AppCompatActivity() {
     }
 
     private fun haveRefDataChangingBean(context: Context) {
-        if (DataUtils.installState == "1") {
-            return
-        }
         runCatching {
             val referrerClient = InstallReferrerClient.newBuilder(context).build()
             referrerClient.startConnection(object : InstallReferrerStateListener {
                 override fun onInstallReferrerSetupFinished(p0: Int) {
                     when (p0) {
                         InstallReferrerClient.InstallReferrerResponse.OK -> {
-                            lifecycleScope.launch {
-                                PutDataUtils.emitInstallData(context, referrerClient.installReferrer)
+                            DataUtils.admin_ref_data =
+                                referrerClient.installReferrer.installReferrer ?: ""
+                            val timeElapsed =
+                                ((System.currentTimeMillis() - App.appTimeStart) / 1000).toInt()
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                Postadmin().getAdminData(this@StartActivity)
+                                PutDataUtils.postPointData("u_rf", "time", timeElapsed)
                             }
+                            PutDataUtils.emitInstallData(
+                                context,
+                                referrerClient.installReferrer
+                            )
                         }
                     }
                     referrerClient.endConnection()

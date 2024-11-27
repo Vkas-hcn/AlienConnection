@@ -113,6 +113,53 @@ object DataUtils {
         set(value) {
             sharedPreferences.edit().putString("advertising_google", value).apply()
         }
+
+    var admin_ref_data: String
+        get() = sharedPreferences.getString("admin_ref_data", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("admin_ref_data", value).apply()
+        }
+
+    var admin_1_data: String
+        get() = sharedPreferences.getString("admin_1_data", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("admin_1_data", value).apply()
+        }
+
+    var admin_2_data: String
+        get() = sharedPreferences.getString("admin_2_data", "").toString()
+        set(value) {
+            sharedPreferences.edit().putString("admin_2_data", value).apply()
+        }
+
+    var ad_date_app: Long
+        get() = sharedPreferences.getLong("ad_date_bo", 0)
+        set(value) {
+            sharedPreferences.edit().putLong("ad_date_bo", value).apply()
+        }
+
+    var ad_date_show: Int
+        get() = sharedPreferences.getInt("ad_date_show", 0)
+        set(value) {
+            sharedPreferences.edit().putInt("ad_date_show", value).apply()
+        }
+
+    var ad_date_click: Int
+        get() = sharedPreferences.getInt("ad_date_click", 0)
+        set(value) {
+            sharedPreferences.edit().putInt("ad_date_click", value).apply()
+        }
+    var ad_date_up: Boolean
+        get() = sharedPreferences.getBoolean("ad_date_up", false)
+        set(value) {
+            sharedPreferences.edit().putBoolean("ad_date_up", value).apply()
+        }
+
+    var black_state: Boolean
+        get() = sharedPreferences.getBoolean("black_state", false)
+        set(value) {
+            sharedPreferences.edit().putBoolean("black_state", value).apply()
+        }
     fun getCountryIcon(name: String): Int {
         return when (name.replace(" ", "").lowercase()) {
             "australia" -> R.drawable.australia

@@ -25,6 +25,7 @@ import com.beetle.chili.triggers.connection.databinding.VvLlBinding
 import com.beetle.chili.triggers.connection.databinding.VvSsBinding
 import com.beetle.chili.triggers.connection.uskde.DataUtils
 import com.beetle.chili.triggers.connection.wekgisa.LoadingDialog
+import com.beetle.chili.triggers.connection.wjfos.PutDataUtils
 import com.google.gson.Gson
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
@@ -51,10 +52,11 @@ class ListActivity : AppCompatActivity() {
         intData()
         clickBtn()
         initAdapter()
-        loadingDialog = LoadingDialog(this)
+        PutDataUtils.postPointData("p_list_view", "sate", PutDataUtils.getVpnConnectName())
     }
 
     private fun intData() {
+        loadingDialog = LoadingDialog(this)
         val bean = DataUtils.getNowVpn()
         binding.listSmart.imgCheck.setImageResource(if (bean.isSmart && App.vvState) R.drawable.item_c else R.drawable.item_dis)
         AdManager.loadAd(this, GetMobData.getServiceAdType())
@@ -106,7 +108,10 @@ class ListActivity : AppCompatActivity() {
             .setTitle("Tip")
             .setMessage("Do you want to switch servers? You need to disconnect from the current server before switching. Confirm to continue?")
             .setIcon(R.mipmap.ic_launcher)
-            .setPositiveButton("YES") { _, _ -> nextFun() }
+            .setPositiveButton("YES") { _, _ ->
+                nextFun()
+                PutDataUtils.postPointData("p_switch_server")
+            }
             .setNegativeButton("NO", null)
             .show()
     }
@@ -124,13 +129,14 @@ class ListActivity : AppCompatActivity() {
         jobService?.cancel()
         jobService = null
         jobService = lifecycleScope.launch {
-            if (GetMobData.getAdBlackData()) {
+            PutDataUtils.postPointData("p_list_back")
+            if (GetMobData.getAdBlackData() || AdManager.caoState(GetMobData.getServiceAdType())) {
                 jobService?.cancel()
                 jobService = null
                 nextFun()
                 return@launch
             }
-            if(AdManager.canShowAd(this@ListActivity, GetMobData.getServiceAdType())!=2){
+            if (AdManager.canShowAd(this@ListActivity, GetMobData.getServiceAdType()) != 2) {
                 AdManager.loadAd(this@ListActivity, GetMobData.getServiceAdType())
             }
             loadingDialog.showLoading()

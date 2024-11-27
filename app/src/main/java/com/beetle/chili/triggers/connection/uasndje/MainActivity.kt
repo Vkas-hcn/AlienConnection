@@ -33,6 +33,7 @@ import com.beetle.chili.triggers.connection.adkfieo.GetMobData.getEndAdType
 import com.beetle.chili.triggers.connection.adkfieo.GetMobData.getHomeAdType
 import com.beetle.chili.triggers.connection.adkfieo.GetMobData.getResultAdType
 import com.beetle.chili.triggers.connection.adkfieo.GetMobData.logAlien
+import com.beetle.chili.triggers.connection.adkfieo.Postadmin
 import com.beetle.chili.triggers.connection.aleis.App
 import com.beetle.chili.triggers.connection.brslke.SsSpeed
 import com.beetle.chili.triggers.connection.databinding.ActivityMainBinding
@@ -208,17 +209,22 @@ class MainActivity : AppCompatActivity(),
             clickBlock {
                 jumpToEnd()
             }
+            PutDataUtils.postPointData("p_home_infomation")
         }
         binding.mainImgState.setOnClickListener {
             clickBlock {
                 showVpnResult()
             }
+            if(App.vvState){return@setOnClickListener}
+            PutDataUtils.postPointData("p_home_click")
         }
 
         binding.conVpnBut.setOnClickListener {
             clickBlock {
                 showVpnResult()
             }
+            if(App.vvState){return@setOnClickListener}
+            PutDataUtils.postPointData("p_home_click")
         }
         binding.tvPp.setOnClickListener {
             webPage.launch(Intent(this@MainActivity, WebActivity::class.java))
@@ -249,6 +255,7 @@ class MainActivity : AppCompatActivity(),
 
     private fun requestPermissionForResult(result: ActivityResult) {
         if (result.resultCode == RESULT_OK) {
+            PutDataUtils.postPointData("c_vpnper_get")
             startVpn()
         } else {
             Toast.makeText(
@@ -260,10 +267,12 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun showVpnResult() {
+        PutDataUtils.postPointData("c_all_connect", "type", "ss")
         if (NetGet.inspectConnect(this)) return
         if (checkVPNPermission()) {
             startVpn()
         } else {
+            PutDataUtils.postPointData("c_vpnper_view")
             VpnService.prepare(this).let {
                 requestPermissionForResultVPN.launch(it)
             }
@@ -306,7 +315,8 @@ class MainActivity : AppCompatActivity(),
             setVpnConfig()
             delay(2000)
             if (nowClickState == 2) {
-                showConnectAd()
+                showConnectAd(GetMobData.getConnectTime().second)
+                PutDataUtils.postPointData("c_all_disconnect")
             }
             if (nowClickState == 0) {
                 DataUtils.addHisVpn()
@@ -339,7 +349,10 @@ class MainActivity : AppCompatActivity(),
         logAlien("showHomeAd")
         jobHomeTdo?.cancel()
         jobHomeTdo = null
-        if (GetMobData.getAdBlackData()) {
+        PutDataUtils.postPointData("p_home_view")
+        if (GetMobData.getAdBlackData() || Postadmin().getAdminPingData() || AdManager.caoState(
+                getHomeAdType()
+            )) {
             binding.adLayout.isVisible = false
             return
         }
@@ -367,8 +380,8 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun showConnectAd() {
-        if (GetMobData.getAdBlackData()) {
+    private fun showConnectAd(connectTime: Int) {
+        if (GetMobData.getAdBlackData() || Postadmin().getAdminPingData() || AdManager.caoState(getConnectAdType())) {
             showFinishAd()
             return
         }
@@ -381,7 +394,7 @@ class MainActivity : AppCompatActivity(),
             try {
                 while (isActive) {
                     elapsedTime = System.currentTimeMillis() - startTime
-                    if (elapsedTime >= (10000)) {
+                    if (elapsedTime >= (connectTime * 1000)) {
                         Log.e("TAG", "连接超时")
                         showFinishAd()
                         break
@@ -517,7 +530,7 @@ class MainActivity : AppCompatActivity(),
         when (state) {
             BaseService.State.Connected -> {
                 App.vvState = true
-                showConnectAd()
+                showConnectAd(GetMobData.getConnectTime().first)
                 AdManager.loadAd(this, getEndAdType())
                 AdManager.loadAd(this, getResultAdType())
                 if (nowClickState != 1) {
