@@ -28,7 +28,7 @@ class Postadmin {
     @SuppressLint("HardwareIds")
     fun adminData(): String {
         return JSONObject().apply {
-            put("SHcEfzvia", "com.secure.shield.wave.protect.fast\t")
+            put("SHcEfzvia", "com.secure.shield.wave.protect.fast")
             put("tydhH", DataUtils.BID)
             put("VFntwRQjQ", DataUtils.admin_ref_data)
             put("pOXSCSAih", getAppVersion())
@@ -47,7 +47,7 @@ class Postadmin {
             try {
                 val response = postAdminDataWithRetry(
                     context,
-                    "https://wace.shieldproect.com/api/asdev/",
+                    "https://wace.shieldproect.com/apitest/asdev/",
                     params
                 )
                 val timeEnd = ((System.currentTimeMillis() - timeStart) / 1000).toInt()

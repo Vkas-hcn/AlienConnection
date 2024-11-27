@@ -18,6 +18,7 @@ import com.beetle.chili.triggers.connection.adapter.ServiceAdaoter
 import com.beetle.chili.triggers.connection.adkfieo.AdManager
 import com.beetle.chili.triggers.connection.adkfieo.AdType
 import com.beetle.chili.triggers.connection.adkfieo.GetMobData
+import com.beetle.chili.triggers.connection.adkfieo.GetMobData.logAlien
 import com.beetle.chili.triggers.connection.aleis.App
 import com.beetle.chili.triggers.connection.blkfh.VInForBean
 import com.beetle.chili.triggers.connection.databinding.VvEeBinding
@@ -84,14 +85,16 @@ class ListActivity : AppCompatActivity() {
 
     private fun clickBtn() {
         binding.appCompatTextView.setOnClickListener {
-            showServiceIntAd {
-                nextBackFun()
-            }
+            showServiceFun()
         }
         onBackPressedDispatcher.addCallback(this) {
-            showServiceIntAd {
-                nextBackFun()
-            }
+            showServiceFun()
+        }
+    }
+
+    private fun showServiceFun() {
+        showServiceIntAd {
+            nextBackFun()
         }
     }
 
@@ -117,15 +120,16 @@ class ListActivity : AppCompatActivity() {
     }
 
     private fun nextBackFun() {
+        loadingDialog.hideLoading()
         val data = Intent().apply {
             putExtra("end", "backlist")
         }
         setResult(Activity.RESULT_OK, data)
-        loadingDialog.hideLoading()
         finish()
     }
 
     private fun showServiceIntAd(nextFun: () -> Unit) {
+        logAlien("showServiceIntAd")
         jobService?.cancel()
         jobService = null
         jobService = lifecycleScope.launch {
@@ -151,13 +155,18 @@ class ListActivity : AppCompatActivity() {
                             AdManager.showAd(this@ListActivity, GetMobData.getServiceAdType()) {
                                 nextFun()
                             }
+                            jobService?.cancel()
+                            jobService = null
                             break
                         }
                         delay(500L)
                     }
                 }
             } catch (e: TimeoutCancellationException) {
+                logAlien("超时--------")
                 nextFun()
+                jobService?.cancel()
+                jobService = null
             }
         }
     }

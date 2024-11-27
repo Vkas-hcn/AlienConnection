@@ -587,7 +587,7 @@ object AdManager : LifecycleObserver {
             AdType.OPEN_DIS -> appOpenAdDis = null
             AdType.NATIVE_HOME_DIS -> nativeHomeAdDis = null
             AdType.NATIVE_RESULT_DIS -> nativeResultAdDis = null
-            AdType.INTERSTITIAL_SERVICE_DIS -> interstitialServiceAdDis
+            AdType.INTERSTITIAL_SERVICE_DIS -> interstitialServiceAdDis = null
             AdType.INTERSTITIAL_RESULT_DIS -> interstitialResultAdDis = null
         }
     }
@@ -819,11 +819,11 @@ object AdManager : LifecycleObserver {
         val currentOpenCount = DataUtils.ad_date_show ?: 0
         val currentClickCount = DataUtils.ad_date_click ?: 0
         if (currentOpenCount >= adOpenNum && !DataUtils.ad_date_up) {
-            PutDataUtils.postPointData("abc_limit","type","show")
+            PutDataUtils.postPointData("abc_limit", "type", "show")
             DataUtils.ad_date_up = true
         }
         if (currentClickCount >= adClickNum && !DataUtils.ad_date_up) {
-            PutDataUtils.postPointData("abc_limit","type","click")
+            PutDataUtils.postPointData("abc_limit", "type", "click")
             DataUtils.ad_date_up = true
         }
         return currentOpenCount >= adOpenNum || currentClickCount >= adClickNum

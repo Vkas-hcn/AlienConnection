@@ -141,6 +141,8 @@ class MainActivity : AppCompatActivity(),
         }
         initData()
         clickMainBtn()
+        NetGet.inspectCountry()
+        NetGet.inspectConnect(this)
     }
 
     private fun initData() {
@@ -215,7 +217,9 @@ class MainActivity : AppCompatActivity(),
             clickBlock {
                 showVpnResult()
             }
-            if(App.vvState){return@setOnClickListener}
+            if (App.vvState) {
+                return@setOnClickListener
+            }
             PutDataUtils.postPointData("p_home_click")
         }
 
@@ -223,7 +227,9 @@ class MainActivity : AppCompatActivity(),
             clickBlock {
                 showVpnResult()
             }
-            if(App.vvState){return@setOnClickListener}
+            if (App.vvState) {
+                return@setOnClickListener
+            }
             PutDataUtils.postPointData("p_home_click")
         }
         binding.tvPp.setOnClickListener {
@@ -267,7 +273,6 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun showVpnResult() {
-        PutDataUtils.postPointData("c_all_connect", "type", "ss")
         if (NetGet.inspectConnect(this)) return
         if (checkVPNPermission()) {
             startVpn()
@@ -276,6 +281,9 @@ class MainActivity : AppCompatActivity(),
             VpnService.prepare(this).let {
                 requestPermissionForResultVPN.launch(it)
             }
+        }
+        if (!App.vvState) {
+            PutDataUtils.postPointData("c_all_connect", "type", "ss")
         }
     }
 
@@ -311,7 +319,6 @@ class MainActivity : AppCompatActivity(),
                 0
             }
             binding.showVpnState = 1
-            connectJob?.cancel()
             setVpnConfig()
             delay(2000)
             if (nowClickState == 2) {
@@ -321,7 +328,7 @@ class MainActivity : AppCompatActivity(),
             if (nowClickState == 0) {
                 DataUtils.addHisVpn()
                 Core.startService()
-                PutDataUtils.postPointData("c_real_connect", "type", "ss")
+                PutDataUtils.postPointData("c_real_connect", "type", "ss","IP",DataUtils.getNowVpn().host)
                 delay(3000)
                 if (!App.vvState) {
                     PutDataUtils.postPointData(
@@ -352,7 +359,8 @@ class MainActivity : AppCompatActivity(),
         PutDataUtils.postPointData("p_home_view")
         if (GetMobData.getAdBlackData() || Postadmin().getAdminPingData() || AdManager.caoState(
                 getHomeAdType()
-            )) {
+            )
+        ) {
             binding.adLayout.isVisible = false
             return
         }
@@ -381,7 +389,10 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun showConnectAd(connectTime: Int) {
-        if (GetMobData.getAdBlackData() || Postadmin().getAdminPingData() || AdManager.caoState(getConnectAdType())) {
+        if (GetMobData.getAdBlackData() || Postadmin().getAdminPingData() || AdManager.caoState(
+                getConnectAdType()
+            )
+        ) {
             showFinishAd()
             return
         }
@@ -534,7 +545,7 @@ class MainActivity : AppCompatActivity(),
                 AdManager.loadAd(this, getEndAdType())
                 AdManager.loadAd(this, getResultAdType())
                 if (nowClickState != 1) {
-                    PutDataUtils.postPointData("c_su_connet", "type", "ss")
+                    PutDataUtils.postPointData("c_su_connet", "type", "ss","IP",DataUtils.getNowVpn().host)
                 }
             }
 
